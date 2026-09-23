@@ -1,9 +1,10 @@
 /* =============================================================================
    Brew — utilidades das funções da Vercel (não vira endpoint: começa com "_")
 
-   Banco: Upstash Redis, falado por HTTP (REST) — sem pacote npm.
-   As variáveis KV_REST_API_URL / KV_REST_API_TOKEN são criadas sozinhas quando
-   o banco é conectado ao projeto pelo Marketplace da Vercel.
+   Banco: Supabase (Postgres), falado pela API REST — sem pacote npm.
+   SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são criadas sozinhas quando o
+   Supabase é conectado ao projeto pela integração da Vercel. As tabelas vêm
+   de supabase/tabelas.sql (rodar uma vez no SQL Editor).
 
    Login: uma senha única de administrador, na variável ADMIN_PASSWORD.
    O token de sessão é assinado com HMAC a partir dela — trocar a senha
@@ -38,44 +39,57 @@ export async function lerCorpo(request, limite = 900 * 1024) {
   catch (e) { throw Object.assign(new Error('JSON inválido.'), { status: 400 }); }
 }
 
-/* -------------------------------------------------------------------- redis */
+/* ----------------------------------------------------------------- supabase
+   Fala com o Postgres pela API REST do Supabase (PostgREST), com a chave de
+   serviço — que só existe aqui no servidor. As tabelas têm RLS ligado e
+   nenhuma política: a chave pública (anon) não lê nem grava nada. */
 
-function redisUrl() {
-  return process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+function sbUrl() {
+  return (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 }
-function redisToken() {
-  return process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+function sbChave() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
 }
 
 export function bancoConfigurado() {
-  return Boolean(redisUrl() && redisToken());
+  return Boolean(sbUrl() && sbChave());
 }
 
-async function chamarRedis(caminho, corpo) {
-  const r = await fetch(redisUrl().replace(/\/$/, '') + caminho, {
-    method: 'POST',
-    headers: { authorization: 'Bearer ' + redisToken(), 'content-type': 'application/json' },
-    body: JSON.stringify(corpo)
+export async function sb(metodo, caminho, corpo, prefer) {
+  const chave = sbChave();
+  const headers = { apikey: chave, 'content-type': 'application/json' };
+  /* chave antiga (JWT) vai também no Authorization; a nova (sb_secret_) não */
+  if (chave.startsWith('eyJ')) headers.authorization = 'Bearer ' + chave;
+  if (prefer) headers.prefer = prefer;
+  const r = await fetch(sbUrl() + '/rest/v1/' + caminho, {
+    method: metodo, headers,
+    body: corpo === undefined ? undefined : JSON.stringify(corpo)
   });
-  const dados = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error('Banco respondeu ' + r.status + ': ' + (dados.error || ''));
+  const texto = await r.text();
+  let dados = null;
+  try { dados = texto ? JSON.parse(texto) : null; } catch (e) { dados = null; }
+  if (!r.ok) {
+    const msg = (dados && (dados.message || dados.error)) || ('HTTP ' + r.status);
+    if ((dados && (dados.code === '42P01' || dados.code === 'PGRST205')) || /does not exist|could not find the table/i.test(msg)) {
+      throw Object.assign(new Error('As tabelas do banco ainda não foram criadas — rode supabase/tabelas.sql no SQL Editor do Supabase.'), { status: 500 });
+    }
+    throw new Error('Banco: ' + msg);
+  }
   return dados;
 }
 
-/* um comando: redis('GET', 'chave') */
-export async function redis(...comando) {
-  const dados = await chamarRedis('', comando);
-  if (dados.error) throw new Error('Banco: ' + dados.error);
-  return dados.result;
+/* chave/valor simples (tabela brew_kv): tabela de preços, travas de login */
+export async function kvLer(chave) {
+  const linhas = await sb('GET', 'brew_kv?select=valor&chave=eq.' + encodeURIComponent(chave));
+  return linhas && linhas[0] ? linhas[0].valor : null;
 }
-
-/* vários comandos numa transação: redisMulti([['SET',..], ['HSET',..]]) */
-export async function redisMulti(comandos) {
-  const dados = await chamarRedis('/multi-exec', comandos);
-  const lista = Array.isArray(dados) ? dados : [];
-  const falha = lista.find(x => x && x.error);
-  if (falha) throw new Error('Banco: ' + falha.error);
-  return lista.map(x => x && x.result);
+export async function kvGravar(chave, valor) {
+  await sb('POST', 'brew_kv?on_conflict=chave',
+    { chave, valor, atualizado: new Date().toISOString() },
+    'resolution=merge-duplicates,return=minimal');
+}
+export async function kvApagar(chave) {
+  await sb('DELETE', 'brew_kv?chave=eq.' + encodeURIComponent(chave), undefined, 'return=minimal');
 }
 
 /* ------------------------------------------------------------------ sessão */
@@ -132,7 +146,7 @@ export function protegido(handler) {
   return async (request) => {
     try {
       if (!senhaConfigurada()) return erro('ADMIN_PASSWORD não configurada na Vercel.', 500);
-      if (!bancoConfigurado()) return erro('Banco (Upstash Redis) não conectado ao projeto.', 500);
+      if (!bancoConfigurado()) return erro('Banco (Supabase) não conectado ao projeto.', 500);
       if (!(await autorizado(request))) return erro('Sessão expirada. Entre de novo.', 401);
       return await handler(request);
     } catch (e) {

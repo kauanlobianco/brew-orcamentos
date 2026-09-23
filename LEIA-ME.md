@@ -44,7 +44,8 @@ Como funciona por dentro:
 api/login.js        POST  senha -> token de sessão (30 dias; 10 erros = trava 15 min)
 api/precos.js       GET/PUT a tabela de preços
 api/orcamentos.js   GET lista · GET ?id · POST salvar · DELETE ?id
-api/_lib.js         banco (Upstash Redis via REST) e assinatura do token
+api/_lib.js         banco (Supabase via API REST) e assinatura do token
+supabase/tabelas.sql  as duas tabelas (brew_kv, brew_orcamentos) — rodar 1x no SQL Editor
 ```
 
 Variáveis de ambiente na Vercel:
@@ -52,15 +53,19 @@ Variáveis de ambiente na Vercel:
 | Variável | O que é |
 |---|---|
 | `ADMIN_PASSWORD` | a senha de acesso — trocar ela derruba todas as sessões |
-| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | criadas sozinhas ao conectar o Upstash Redis |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | criadas sozinhas pela integração Supabase da Vercel |
+
+As tabelas têm RLS ligado e nenhuma política: a chave pública (anon) não
+enxerga nada; só as funções do painel, com a chave de serviço, leem e gravam.
+A chave de serviço nunca vai para o navegador nem para o repositório.
 
 Aberto como arquivo (duplo clique no `painel.html`), o painel continua
 funcionando só no navegador daquele computador, sem login — como antes.
 
 **Testar sem publicar:** `_teste-nuvem.html` (fica fora do Git) roda o painel com
-o código real das funções e um Redis falso no navegador. Precisa ser servido
-por http (ex.: `cardapio-digital/ferramentas/servir.ps1` apontado para esta
-pasta); a senha de teste está no próprio arquivo.
+o código real das funções, falando com o Supabase de verdade. As chaves são
+coladas no console na hora (instruções no próprio arquivo), nunca gravadas.
+Precisa ser servido por http.
 
 ## O cardápio do cliente
 
