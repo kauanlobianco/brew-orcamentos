@@ -1,0 +1,9 @@
+{
+  "name": "brew-orcamentos",
+  "private": true,
+  "description": "Painel de orçamentos de eventos do Brew Bar·B·Q Pub",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  }
+}

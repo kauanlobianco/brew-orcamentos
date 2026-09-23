@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Brew Bar·B·Q Pub — Cardápio de Eventos</title>
+<!--
+  Cardápio de eventos para o CLIENTE escolher (formato celular, 120x210mm).
+  Porte de referencia/gerar_cardapio.py para HTML puro — não precisa de Python.
+  PDF: rode gerar-pdf.ps1 nesta pasta (usa o Microsoft Edge em modo headless).
+
+  Mudança de set/2026: petiscos passaram de 7 para 12 e viraram ESCOLHA
+  (mínimo 6). Cada petisco tem um número para o cliente anotar na ficha.
+-->
+<link rel="stylesheet" href="../assets/fontes.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --carvao:#17130F; --fumaca:#1E1813; --papel:#F2E9D8; --papel2:#E6DAC4;
+  --tinta:#1B1613; --ouro:#CC9614; --brasa:#B03A1E; --creme:#F2E9D8;
+  --display:'Bevan',Georgia,serif; --corpo:'Archivo',system-ui,sans-serif;
+  --mono:'Space Mono',monospace; --script:'Yellowtail',cursive;
+}
+@page{size:120mm 210mm;margin:0}
+html,body{background:var(--carvao)}
+body{font-family:var(--corpo);color:var(--creme);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+img{display:block;width:100%;height:100%;object-fit:cover}
+
+.pg{width:120mm;height:210mm;padding:11mm 10mm;position:relative;overflow:hidden;
+    background:var(--carvao);break-after:page;display:flex;flex-direction:column}
+.pg:last-child{break-after:auto}
+@media screen{ body{display:flex;flex-direction:column;align-items:center;gap:6mm;padding:6mm 0;background:#0C0A08} }
+
+/* ---------- capa ---------- */
+.capa{align-items:center;justify-content:center;text-align:center}
+.capa .selo{width:34mm;height:auto;object-fit:contain;margin-bottom:9mm}
+.capa .script{font-family:var(--script);color:var(--ouro);font-size:12pt;display:block;margin-bottom:3mm}
+.capa h1{font-family:var(--display);font-weight:400;font-size:22pt;line-height:1.04;
+         text-transform:uppercase;letter-spacing:.01em;width:100%}
+.capa .sub{font-size:8.5pt;color:rgba(242,233,216,.62);margin-top:5mm;line-height:1.5;max-width:76mm}
+.capa .risco{width:26mm;height:1px;background:var(--ouro);margin:8mm auto}
+.capa .pe{font-family:var(--mono);font-size:6.5pt;letter-spacing:.22em;text-transform:uppercase;
+          color:rgba(242,233,216,.42)}
+
+/* ---------- cabeçalho de bloco ---------- */
+.olho{font-family:var(--mono);font-size:6.5pt;letter-spacing:.26em;text-transform:uppercase;
+      color:var(--ouro);display:flex;align-items:center;gap:3mm;margin-bottom:3mm}
+.olho::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(204,150,20,.6),transparent)}
+h2{font-family:var(--display);font-weight:400;font-size:16pt;line-height:1.06;text-transform:uppercase}
+h2 .script{font-family:var(--script);text-transform:none;color:var(--ouro);font-size:15pt}
+.lead{font-size:7.4pt;line-height:1.5;color:rgba(242,233,216,.66);margin-top:2.5mm}
+.lead b{color:var(--ouro);font-weight:600}
+.corpo{flex:1;display:flex;flex-direction:column;justify-content:center}
+
+/* ---------- grade de itens ---------- */
+.grade{display:grid;grid-template-columns:1fr 1fr;gap:2.6mm;margin-top:4mm}
+.item{background:var(--papel);color:var(--tinta);border-radius:1.5mm;overflow:hidden;display:flex;flex-direction:column}
+.item .foto{height:26mm;flex:none;overflow:hidden;background:var(--papel2);position:relative}
+.item .txt{padding:2mm 2.4mm 2.4mm}
+.item h4{font-family:var(--display);font-weight:400;font-size:7pt;line-height:1.12;text-transform:uppercase}
+.item p{font-size:6.1pt;line-height:1.3;color:rgba(27,22,19,.66);margin-top:.8mm}
+/* petiscos: 6 por página, fotos mais altas para as duas folhas preencherem igual */
+.pet .grade{margin-top:5mm;gap:3mm}
+.pet .item .foto{height:31mm}
+.pet .nota{margin-top:auto}
+/* número do petisco — é o que o cliente anota na ficha */
+.item .foto .n{position:absolute;top:1.6mm;left:1.6mm;background:var(--carvao);color:var(--ouro);
+  font-family:var(--mono);font-weight:700;font-size:6.4pt;letter-spacing:.06em;line-height:1;
+  padding:1mm 1.7mm;border-radius:1mm;box-shadow:0 .4mm 1.2mm rgba(0,0,0,.35)}
+
+.buffets-col{display:flex;flex-direction:column;gap:3mm;margin-top:4mm}
+.buf{background:var(--papel);border-radius:1.5mm;overflow:hidden}
+.buf .foto{height:34mm}
+.buf.rev{grid-template-columns:1fr 1fr}
+.buf.rev .foto{grid-column:2;grid-row:1}
+.buf.rev .txt{grid-column:1;grid-row:1}
+.buf h4{font-size:8.4pt}
+.buf p{font-size:6.4pt;line-height:1.4}
+
+/* item largo (1 por linha) */
+.largo{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+.largo .foto{aspect-ratio:auto;height:100%;min-height:15mm}
+.largo .txt{display:flex;flex-direction:column;justify-content:center;padding:2mm 2.6mm}
+.largo h4{font-size:7.4pt}
+.largo p{font-size:6.1pt}
+
+/* ---------- hero ---------- */
+.hero{background:var(--papel);color:var(--tinta);border-radius:1.5mm;overflow:hidden;margin-top:6mm}
+.hero .foto{aspect-ratio:16/9}
+.hero .txt{padding:4mm 4.5mm 5mm}
+.hero h3{font-family:var(--display);font-weight:400;font-size:12pt;line-height:1.08;text-transform:uppercase}
+.hero p{font-size:7.4pt;line-height:1.5;color:rgba(27,22,19,.7);margin-top:2mm}
+
+/* ---------- opções (duas versões) ---------- */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:6mm}
+.duo .op{background:var(--papel);color:var(--tinta);border-radius:1.5mm;overflow:hidden}
+.duo .foto{aspect-ratio:1/1}
+.duo.musica .foto{aspect-ratio:.58/1}
+.duo.musica .op{background:transparent}
+.duo .txt{padding:3mm}
+.duo .tag{font-family:var(--mono);font-size:5.8pt;letter-spacing:.16em;text-transform:uppercase;color:var(--ouro)}
+.duo h4{font-family:var(--display);font-weight:400;font-size:9pt;text-transform:uppercase;margin:1mm 0 1.6mm}
+.duo ul{list-style:none}
+.duo li{font-size:6.2pt;line-height:1.4;padding:.9mm 0;border-top:1px solid rgba(27,22,19,.1);color:rgba(27,22,19,.72)}
+.duo li:first-child{border-top:0}
+
+/* ---------- chopp / drinks ---------- */
+.opcoes{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin-top:5mm}
+.op-btn{background:var(--fumaca);border:1px solid rgba(242,233,216,.16);border-radius:1.5mm;
+        padding:3.4mm 3mm;text-align:center}
+.op-btn .n{font-family:var(--display);font-size:13pt;color:var(--ouro);display:block;line-height:1}
+.op-btn .u{font-family:var(--mono);font-size:5.8pt;letter-spacing:.18em;text-transform:uppercase;
+           color:rgba(242,233,216,.55);display:block;margin-top:1.4mm}
+
+.lista{background:var(--papel);color:var(--tinta);border-radius:1.5mm;padding:3.6mm 4mm;margin-top:4mm}
+.lista .cab{font-family:var(--mono);font-size:5.8pt;letter-spacing:.2em;text-transform:uppercase;
+            color:rgba(27,22,19,.5);margin-bottom:2mm}
+.lista ul{list-style:none;columns:2;column-gap:4mm}
+.lista li{font-size:6.8pt;line-height:1.45;padding:.8mm 0;break-inside:avoid}
+.lista li::before{content:"\2022";color:var(--ouro);margin-right:1.6mm;font-weight:700}
+
+/* ---------- nota ---------- */
+.nota{border:1px solid rgba(204,150,20,.42);border-radius:1.5mm;padding:2.6mm 3mm;margin-top:3.5mm;
+      font-size:6.6pt;line-height:1.45;color:rgba(242,233,216,.74)}
+.nota b{color:var(--ouro)}
+
+/* ---------- como funciona ---------- */
+.passos{display:flex;flex-direction:column;gap:3.5mm;margin-top:6mm}
+.passo{display:flex;gap:3.5mm;align-items:flex-start}
+.passo .num{font-family:var(--display);font-size:15pt;color:var(--ouro);line-height:.9;min-width:9mm}
+.passo h4{font-family:var(--display);font-weight:400;font-size:9pt;text-transform:uppercase;margin-bottom:1mm}
+.passo p{font-size:7pt;line-height:1.5;color:rgba(242,233,216,.66)}
+
+/* ---------- ficha final ---------- */
+.ficha{background:var(--papel);color:var(--tinta);border-radius:1.5mm;padding:4mm 4.5mm 4.5mm;margin-top:4.5mm}
+.ficha .cab{font-family:var(--mono);font-size:5.8pt;letter-spacing:.2em;text-transform:uppercase;
+            color:rgba(27,22,19,.5);margin-bottom:2.4mm}
+.ficha .linha{display:flex;align-items:baseline;gap:2mm;padding:1.9mm 0;border-bottom:1px dotted rgba(27,22,19,.28)}
+.ficha .linha:last-child{border-bottom:0}
+.ficha .rot{font-family:var(--display);font-weight:400;font-size:7.2pt;text-transform:uppercase;
+            white-space:nowrap;color:rgba(27,22,19,.85)}
+.ficha .rot small{font-family:var(--mono);font-size:5.4pt;letter-spacing:.08em;text-transform:none;color:rgba(27,22,19,.5);margin-left:1mm}
+.ficha .pre{flex:1;border-bottom:1px solid rgba(27,22,19,.18);height:3mm}
+
+.fim{text-align:center;margin-top:auto;padding-top:5mm}
+.fim .script{font-family:var(--script);color:var(--ouro);font-size:11pt;display:block;margin-bottom:2mm}
+.fim h2{font-size:13pt}
+.contato{font-family:var(--mono);font-size:6.2pt;letter-spacing:.12em;color:rgba(242,233,216,.5);
+         margin-top:4mm;line-height:1.7}
+
+/* ---------- quadro resumo ---------- */
+.resumo{margin-top:3.6mm}
+.resumo .tit{font-family:var(--mono);font-size:5.7pt;letter-spacing:.2em;text-transform:uppercase;
+             color:rgba(242,233,216,.48);margin-bottom:1.6mm;display:flex;align-items:center;gap:2.4mm}
+.resumo .tit::after{content:"";flex:1;height:1px;background:rgba(242,233,216,.14)}
+.r-lista{display:flex;flex-direction:column;gap:1.2mm}
+.r-item{display:flex;align-items:center;gap:2.8mm;background:var(--fumaca);
+        border:1px solid rgba(242,233,216,.14);border-radius:1.5mm;padding:1.6mm 2.6mm}
+.r-item .num{font-family:var(--display);font-size:9.5pt;color:var(--ouro);min-width:6.4mm;
+             text-align:center;line-height:1}
+.r-item .info{flex:1}
+.r-item .info h4{font-family:var(--display);font-weight:400;font-size:6.5pt;text-transform:uppercase;color:var(--creme)}
+.r-item .info p{font-size:5.3pt;line-height:1.25;color:rgba(242,233,216,.5);margin-top:.3mm}
+.r-chips{display:flex;flex-wrap:wrap;gap:1.6mm}
+.r-chip{background:var(--fumaca);border:1px solid rgba(242,233,216,.16);border-radius:1.5mm;
+        padding:1.4mm 2.6mm;font-family:var(--mono);font-size:5.7pt;letter-spacing:.05em;color:rgba(242,233,216,.8)}
+.r-chip b{color:var(--ouro);font-family:var(--corpo);font-weight:600}
+</style></head><body>
+
+<!-- CAPA -->
+<section class="pg capa">
+  <img class="selo" src="../assets/logo.png" alt="Brew Bar·B·Q Pub">
+  <span class="script">Cardápio de</span>
+  <h1>Eventos</h1>
+  <div class="risco"></div>
+  <p class="sub">Aniversários, casamentos e confraternizações.
+  Monte o seu evento escolhendo os blocos que combinam com a sua festa.</p>
+  <p class="pe" style="margin-top:auto">Nova Friburgo · RJ</p>
+</section>
+
+<!-- COMO FUNCIONA -->
+<section class="pg">
+  <p class="olho">Como funciona</p>
+  <h2>Monte <span class="script">o seu</span></h2>
+  <div class="corpo">
+    <div class="passos">
+      <div class="passo"><span class="num">1</span>
+        <div><h4>Escolha a comida</h4>
+        <p>Comece pelos petiscos — são 12 opções e você escolhe no mínimo 6. Depois escolha o prato principal entre buffet, Brew Classics, finger food ou mesa de frios.</p></div></div>
+      <div class="passo"><span class="num">2</span>
+        <div><h4>Escolha as bebidas</h4>
+        <p>Defina os litros de chopp, se quer bar de drinks e se inclui as bebidas não alcoólicas.</p></div></div>
+      <div class="passo"><span class="num">3</span>
+        <div><h4>Adicione os extras</h4>
+        <p>Música ao vivo para completar a noite.</p></div></div>
+      <div class="passo"><span class="num">4</span>
+        <div><h4>Responda a ficha</h4>
+        <p>Na última página tem uma ficha rápida. Responda e a gente devolve o orçamento fechado.</p></div></div>
+    </div>
+    <div class="nota">Os blocos são <b>conjuntos fechados</b> — você escolhe o bloco, não item a item. A exceção são os petiscos: ali você monta a sua seleção, com <b>no mínimo 6 opções</b>.</div>
+  </div>
+</section>
+
+<!-- PETISCOS · 1/2 -->
+<section class="pg pet">
+  <p class="olho">Bloco 01 · Para começar</p>
+  <h2>Petiscos <span class="script">&amp; entradas</span></h2>
+  <p class="lead">Servidos na recepção. São 12 opções — escolha <b>no mínimo 6</b> e anote os números na ficha do final.</p>
+  <div class="grade">
+    <div class="item"><div class="foto"><img src="../assets/img/cat_pasteis.jpg" alt="Pastéis variados"><span class="n">01</span></div>
+      <div class="txt"><h4>Pastéis variados</h4><p>Massa artesanal, fritos na hora.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_croquete.jpg" alt="Croquete de carne"><span class="n">02</span></div>
+      <div class="txt"><h4>Croquete de carne</h4><p>Carne desfiada, empanada no panko.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_polenta.jpg" alt="Polenta frita"><span class="n">03</span></div>
+      <div class="txt"><h4>Polenta frita</h4><p>Crocante por fora, com molho da casa.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_batata.jpg" alt="Batata frita"><span class="n">04</span></div>
+      <div class="txt"><h4>Batata frita</h4><p>Sequinha, frita na hora.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_aipim.jpg" alt="Aipim frito"><span class="n">05</span></div>
+      <div class="txt"><h4>Aipim frito</h4><p>Dourado por fora, macio por dentro.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_torresmo.jpg" alt="Torresmo crocante"><span class="n">06</span></div>
+      <div class="txt"><h4>Torresmo crocante</h4><p>Artesanal, com vinagrete da casa.</p></div></div>
+  </div>
+  <div class="nota">Cada petisco tem um <b>número</b>. Escolha pelo menos 6 entre o <b>01</b> e o <b>12</b> — a seleção continua na próxima página.</div>
+</section>
+
+<!-- PETISCOS · 2/2 -->
+<section class="pg pet">
+  <p class="olho">Bloco 01 · Para começar</p>
+  <h2>Mais <span class="script">petiscos</span></h2>
+  <p class="lead">Continue a sua seleção — vale misturar as duas páginas.</p>
+  <div class="grade">
+    <div class="item"><div class="foto"><img src="../assets/img/cat_caponata.jpg" alt="Caponata com torradas"><span class="n">07</span></div>
+      <div class="txt"><h4>Caponata com torradas</h4><p>Caponata artesanal e pão tostado.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_frango.jpg" alt="Tiras de frango empanado"><span class="n">08</span></div>
+      <div class="txt"><h4>Tiras de frango empanado</h4><p>Empanado crocante, com maionese da casa.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/sf_dadinho.jpg" alt="Dadinho de tapioca"><span class="n">09</span></div>
+      <div class="txt"><h4>Dadinho de tapioca</h4><p>Crocante por fora, com geleia de pimenta.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_bacalhau.jpg" alt="Bolinho de bacalhau"><span class="n">10</span></div>
+      <div class="txt"><h4>Bolinho de bacalhau</h4><p>Recheio cremoso, com toque de ervas e limão.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_texasbbq.jpg" alt="Bolinho de milho Texas BBQ"><span class="n">11</span></div>
+      <div class="txt"><h4>Bolinho de milho Texas BBQ</h4><p>Massa fofinha de milho, glaceado no barbecue.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/cat_linguica.jpg" alt="Linguiça com pão de alho"><span class="n">12</span></div>
+      <div class="txt"><h4>Linguiça com pão de alho</h4><p>Linguiça grelhada, pão de alho e chimichurri.</p></div></div>
+  </div>
+  <div class="nota">Escolha <b>no mínimo 6</b> dos 12 petiscos. Na ficha da última página, é só anotar os números — por exemplo: <b>01, 04, 08, 09, 10, 12</b>.</div>
+</section>
+
+<!-- BUFFETS -->
+<section class="pg">
+  <p class="olho">Bloco 02 · Prato principal</p>
+  <h2>Os <span class="script">buffets</span></h2>
+  <p class="lead">Escolha <b>um</b> buffet para o seu evento. Todos servidos quentes, durante todo o evento.</p>
+  <div class="buffets-col">
+    <div class="item largo buf">
+      <div class="foto"><img src="../assets/img/cat_feijoada.jpg" alt="Feijoada completa"></div>
+      <div class="txt"><h4>Feijoada completa</h4>
+      <p>Feijão preto com carnes selecionadas, arroz, torresmo, aipim, farofa, couve e laranja.</p></div>
+    </div>
+    <div class="item largo buf rev">
+      <div class="foto"><img src="../assets/img/cat_steakhouse.jpg" alt="Brew Steakhouse"></div>
+      <div class="txt"><h4>Brew Steakhouse</h4>
+      <p>Escolha a carne — mignon ao madeira, fraldinha ou frango. Com arroz à piamontese, batata, farofa de ovos e mix de folhas.</p></div>
+    </div>
+    <div class="item largo buf">
+      <div class="foto"><img src="../assets/img/cat_parrilla.jpg" alt="Parrilla Brew"></div>
+      <div class="txt"><h4>Parrilla Brew</h4>
+      <p>Picanha uruguaia, NY strip, fraldinha e linguiça — todas servidas. Com arroz, batata, farofa, vinagrete, pão de alho e chimichurri.</p></div>
+    </div>
+    <div class="item largo buf rev">
+      <div class="foto"><img src="../assets/img/cat_massas.jpg" alt="Buffet de massas"></div>
+      <div class="txt"><h4>Buffet de massas</h4>
+      <p>Talharim com filé mignon e shitake, finalizado na hora e servido no rechaud.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- BREW CLASSICS -->
+<section class="pg">
+  <p class="olho">Bloco 03 · Prato principal</p>
+  <h2>Brew <span class="script">Classics</span></h2>
+  <p class="lead">Escolha <b>duas opções</b> entre as quatro para servir aos convidados.</p>
+  <div class="grade">
+    <div class="item"><div class="foto"><img src="../assets/img/bc_linguado.jpg" alt="Filet de linguado"></div>
+      <div class="txt"><h4>Filet de linguado</h4><p>Purê de banana da terra, palmito e legumes grelhados.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/bc_mignon.jpg" alt="Filet mignon ao molho madeira"></div>
+      <div class="txt"><h4>Filet mignon ao molho madeira</h4><p>Arroz à piamontese cremoso e batata portuguesa.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/bc_oswaldo.jpg" alt="Filé à Oswaldo Aranha"></div>
+      <div class="txt"><h4>Filé à Oswaldo Aranha</h4><p>Alho frito crocante, batata portuguesa e farofa de ovos.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/bc_shrimp.jpg" alt="God's Shrimp"></div>
+      <div class="txt"><h4>God's Shrimp</h4><p>Camarão sobre arroz de bacon cremoso e creme de milho.</p></div></div>
+  </div>
+  <div class="nota">Os dois pratos são definidos com antecedência e servidos empratados.</div>
+</section>
+
+<!-- FINGER FOOD -->
+<section class="pg">
+  <p class="olho">Bloco 04 · Prato principal</p>
+  <h2>Finger <span class="script">food</span></h2>
+  <p class="lead">Mini empratados e bowls para receber de pé. O bloco vem <b>completo</b>, com os oito itens.</p>
+  <div class="grade">
+    <div class="item"><div class="foto"><img src="../assets/img/sf_file.jpg" alt="Filé mignon ao madeira"></div>
+      <div class="txt"><h4>Filé mignon ao madeira</h4><p>Mini empratado com arroz à piamontese.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/sf_baroa.jpg" alt="Creme de baroa"></div>
+      <div class="txt"><h4>Creme de baroa</h4><p>Com camarões salteados e azeite.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/sf_angu.jpg" alt="Angu com goulash"></div>
+      <div class="txt"><h4>Angu com goulash</h4><p>Angu cremoso e goulash de carne.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/sf_ceviche.jpg" alt="Ceviche de peixe branco"></div>
+      <div class="txt"><h4>Ceviche de peixe branco</h4><p>Cebola roxa, leite de tigre e chips.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/sf_cogumelo.jpg" alt="Cogumelos confitados"></div>
+      <div class="txt"><h4>Cogumelos confitados</h4><p>Na manteiga de ervas.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/sf_capon.jpg" alt="Caponata artesanal"></div>
+      <div class="txt"><h4>Caponata artesanal</h4><p>Sobre pão rústico tostado.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/sf_pasteis.jpg" alt="Mini pastéis sortidos"></div>
+      <div class="txt"><h4>Mini pastéis sortidos</h4><p>Recheios variados, fritos na hora.</p></div></div>
+    <div class="item"><div class="foto"><img src="../assets/img/sf_dadinho.jpg" alt="Dadinho de tapioca"></div>
+      <div class="txt"><h4>Dadinho de tapioca</h4><p>Com geleia de pimenta.</p></div></div>
+  </div>
+</section>
+
+<!-- MESA DE FRIOS -->
+<section class="pg">
+  <p class="olho">Bloco 05 · Prato principal</p>
+  <h2>Mesa <span class="script">de frios</span></h2>
+  <p class="lead">Queijos, embutidos e pastas. Escolha entre a versão essencial e a completa.</p>
+  <div class="duo">
+    <div class="op">
+      <div class="foto"><img src="../assets/img/cat_frios1.jpg" alt="Mesa essencial"></div>
+      <div class="txt">
+        <span class="tag">Opção 1</span>
+        <h4>Essencial</h4>
+        <ul>
+          <li>Mussarela, prato e minas</li>
+          <li>Presunto fatiado</li>
+          <li>Pastas de azeitona e tomate seco</li>
+          <li>Babaganoush</li>
+          <li>Pães variados</li>
+        </ul>
+      </div>
+    </div>
+    <div class="op">
+      <div class="foto"><img src="../assets/img/cat_frios2.jpg" alt="Mesa completa"></div>
+      <div class="txt">
+        <span class="tag">Opção 2</span>
+        <h4>Completa</h4>
+        <ul>
+          <li>Mussarela, prato, minas e provolone</li>
+          <li>Presunto, copa lombo e salaminho</li>
+          <li>Linguiça acebolada e dadinhos</li>
+          <li>Pastas, babaganoush e geleias</li>
+          <li>Frutas, castanhas e pães artesanais</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="nota">A mesa de frios combina bem com o bloco de petiscos para eventos mais longos.</div>
+</section>
+
+<!-- CHOPP -->
+<section class="pg">
+  <p class="olho">Bebidas · Chopp</p>
+  <h2>Chopp <span class="script">na torneira</span></h2>
+  <div class="corpo">
+    <div class="hero" style="margin-top:0">
+      <div class="foto"><img src="../assets/img/cat_chopp.jpg" alt="Chopp gelado"></div>
+      <div class="txt">
+        <h3>Gelado, direto do barril</h3>
+        <p>Escolha quantos litros quer para o seu evento.</p>
+      </div>
+    </div>
+    <div class="opcoes">
+      <div class="op-btn"><span class="n">30</span><span class="u">litros</span></div>
+      <div class="op-btn"><span class="n">50</span><span class="u">litros</span></div>
+      <div class="op-btn"><span class="n">100</span><span class="u">litros</span></div>
+      <div class="op-btn"><span class="n">150+</span><span class="u">litros</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- DRINKS -->
+<section class="pg">
+  <p class="olho">Bebidas · Bar</p>
+  <h2>Bar <span class="script">de drinks</span></h2>
+  <div class="corpo">
+    <div class="hero" style="margin-top:0">
+      <div class="foto"><img src="../assets/img/cat_drinks.jpg" alt="Drinks do bar"></div>
+      <div class="txt">
+        <h3>Preparados na hora</h3>
+        <p>Pela equipe de bar, durante todo o evento.</p>
+      </div>
+    </div>
+    <div class="lista">
+      <div class="cab">Na tabela</div>
+      <ul>
+        <li>Caipirinha</li><li>CaipiVodka</li><li>Gin-tônica</li>
+        <li>Aperol Spritz</li><li>Moscow Mule</li>
+      </ul>
+    </div>
+    <div class="opcoes" style="margin-top:4mm;grid-template-columns:1fr">
+      <div class="op-btn"><span class="n">Open bar</span><span class="u">liberado durante todo o evento</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- NÃO ALCOÓLICAS -->
+<section class="pg">
+  <p class="olho">Bebidas · Sem álcool</p>
+  <h2>Refrigerante, <span class="script">água e sucos</span></h2>
+  <div class="corpo">
+    <div class="hero" style="margin-top:0">
+      <div class="foto"><img src="../assets/img/cat_naoalc.jpg" alt="Bebidas não alcoólicas"></div>
+      <div class="txt">
+        <h3>Liberadas à vontade</h3>
+        <p>Para quem prefere sem álcool, durante todo o evento.</p>
+      </div>
+    </div>
+    <div class="lista">
+      <div class="cab">Inclui</div>
+      <ul>
+        <li>Coca-Cola e zero</li><li>Guaraná e zero</li>
+        <li>Água com e sem gás</li><li>Sucos variados</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- MÚSICA -->
+<section class="pg">
+  <p class="olho">Extras</p>
+  <h2>Música <span class="script">ao vivo</span></h2>
+  <p class="lead">Banda ou voz e violão — a gente acerta o repertório e o cronograma de acordo com o clima que você quer para a noite.</p>
+  <div class="duo musica">
+    <div class="op"><div class="foto"><img src="../assets/img/cat_musica1.jpg" alt="Banda ao vivo no Brew"></div></div>
+    <div class="op"><div class="foto"><img src="../assets/img/cat_musica2.jpg" alt="Voz e violão no Brew"></div></div>
+  </div>
+  <div class="nota">Quer música no seu evento? É só marcar na ficha da última página que a gente inclui no orçamento.</div>
+</section>
+
+<!-- RESUMO -->
+<section class="pg">
+  <p class="olho">Resumo</p>
+  <h2>Suas <span class="script">opções</span></h2>
+  <p class="lead">Tudo o que você pode escolher, num só lugar.</p>
+
+  <div class="resumo">
+    <div class="tit">Abertura</div>
+    <div class="r-lista">
+      <div class="r-item"><span class="num">01</span>
+        <div class="info"><h4>Petiscos &amp; entradas</h4><p>12 opções — escolha no mínimo 6. Acompanha qualquer prato principal.</p></div></div>
+    </div>
+  </div>
+
+  <div class="resumo">
+    <div class="tit">Prato principal · escolha 1</div>
+    <div class="r-lista">
+      <div class="r-item"><span class="num">02</span>
+        <div class="info"><h4>Os buffets</h4><p>Feijoada, Brew Steakhouse, Parrilla Brew ou massas — escolha 1.</p></div></div>
+      <div class="r-item"><span class="num">03</span>
+        <div class="info"><h4>Brew Classics</h4><p>Escolha 2 pratos entre os quatro do bloco.</p></div></div>
+      <div class="r-item"><span class="num">04</span>
+        <div class="info"><h4>Finger food</h4><p>8 mini empratados, ideal para receber de pé.</p></div></div>
+      <div class="r-item"><span class="num">05</span>
+        <div class="info"><h4>Mesa de frios</h4><p>Essencial ou completa.</p></div></div>
+    </div>
+  </div>
+
+  <div class="resumo">
+    <div class="tit">Bebidas</div>
+    <div class="r-chips">
+      <span class="r-chip"><b>Chopp</b> · 30 / 50 / 100 / 150+ L</span>
+      <span class="r-chip"><b>Drinks</b> · open bar liberado</span>
+      <span class="r-chip"><b>Sem álcool</b> · à vontade, sob consulta</span>
+    </div>
+  </div>
+
+  <div class="resumo">
+    <div class="tit">Extras</div>
+    <div class="r-chips">
+      <span class="r-chip"><b>Música</b> · ao vivo, sim ou não</span>
+    </div>
+  </div>
+
+  <div class="nota">Na próxima página tem a ficha para você marcar suas escolhas e enviar pra gente.</div>
+</section>
+
+<!-- FICHA -->
+<section class="pg">
+  <p class="olho">Última etapa</p>
+  <h2>Conta <span class="script">pra gente</span></h2>
+  <p class="lead">Copie a ficha abaixo, responda e envie no nosso WhatsApp. A gente devolve o orçamento fechado.</p>
+  <div class="ficha">
+    <div class="cab">Meu evento</div>
+    <div class="linha"><span class="rot">Ocasião</span><span class="pre"></span></div>
+    <div class="linha"><span class="rot">Data</span><span class="pre"></span></div>
+    <div class="linha"><span class="rot">Convidados</span><span class="pre"></span></div>
+    <div class="linha"><span class="rot">Petiscos<small>nº · mín. 6</small></span><span class="pre"></span></div>
+    <div class="linha"><span class="rot">Prato principal</span><span class="pre"></span></div>
+    <div class="linha"><span class="rot">Chopp</span><span class="pre"></span></div>
+    <div class="linha"><span class="rot">Drinks</span><span class="pre"></span></div>
+    <div class="linha"><span class="rot">Sem álcool</span><span class="pre"></span></div>
+    <div class="linha"><span class="rot">Música</span><span class="pre"></span></div>
+  </div>
+  <div class="fim">
+    <span class="script">Vamos fechar?</span>
+    <h2>Fale com a gente</h2>
+    <p class="contato">Av. Manoel Carneiro de Menezes, 1598<br>Ponte da Saudade · Nova Friburgo/RJ<br>@brewbarbq · (22) 99209-2080</p>
+  </div>
+</section>
+
+</body></html>

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17130F">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Brew Orçamentos">
+<title>Brew Bar·B·Q Pub — Painel de eventos</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="apple-touch-icon" href="assets/logo.png">
+<link rel="stylesheet" href="assets/fontes.css">
+<link rel="stylesheet" href="assets/brew.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================================================ TOPO -->
+  <header class="topo nao-imprime">
+    <div class="marca">
+      <img src="assets/logo.png" alt="Brew Bar·B·Q Pub">
+      <div>
+        <div class="nome">Brew Bar·B·Q Pub</div>
+        <div class="sub">Painel de eventos</div>
+      </div>
+    </div>
+    <nav class="passos">
+      <button type="button" class="passo-btn"><span class="n">1</span><span class="r">Evento</span></button>
+      <button type="button" class="passo-btn"><span class="n">2</span><span class="r">Seleção</span></button>
+      <button type="button" class="passo-btn"><span class="n">3</span><span class="r">Revisão</span></button>
+      <button type="button" class="passo-btn"><span class="n">4</span><span class="r">Apresentação</span></button>
+    </nav>
+    <div class="topo-acoes">
+      <button type="button" class="bt-precos so-nuvem" id="bt-orcamentos">Orçamentos</button>
+      <button type="button" class="bt-precos" id="bt-precos">Preços</button>
+    </div>
+  </header>
+
+  <main class="miolo">
+
+    <!-- ================================================= 1 · EVENTO -->
+    <section class="pane nao-imprime" id="pane-evento">
+      <div class="cabeca">
+        <p class="olho">Etapa 1 · Dados do evento</p>
+        <h1>De quem <span class="script">é a festa</span></h1>
+        <p class="lead">Os dados abaixo aparecem na capa da apresentação e no cabeçalho de cada página.
+          Dá para voltar e alterar a qualquer momento.</p>
+      </div>
+
+      <div class="grade-form">
+        <div class="campo">
+          <label for="f-cliente">Nome do cliente</label>
+          <input id="f-cliente" data-ev="cliente" type="text" placeholder="Ex.: Paola e Rafael" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="f-ocasiao">Tipo / ocasião</label>
+          <select id="f-ocasiao" data-ev="ocasiao"></select>
+        </div>
+        <div class="campo">
+          <label for="f-data">Data do evento</label>
+          <input id="f-data" data-ev="data" type="date">
+        </div>
+        <div class="campo">
+          <label for="f-convidados">Quantidade de convidados</label>
+          <input id="f-convidados" data-ev="convidados" type="number" min="1" step="1" placeholder="Ex.: 80">
+        </div>
+        <div class="campo">
+          <label for="f-local">Local <span style="text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <input id="f-local" data-ev="local" type="text" placeholder="Ex.: Casa fechada · Brew Bar·B·Q Pub">
+        </div>
+        <div class="campo">
+          <label for="f-numero">Nº da proposta <span style="text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <input id="f-numero" data-ev="numero" type="text" placeholder="Ex.: #0254" autocomplete="off">
+        </div>
+        <div class="campo largo">
+          <label for="f-validade">Validade da proposta <span style="text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <input id="f-validade" data-ev="validade" type="number" min="1" step="1" placeholder="Ex.: 7">
+          <span class="dica">Em dias corridos. Aparece na faixa de selos da capa.</span>
+        </div>
+        <div class="campo largo">
+          <label for="f-abertura">Texto de abertura da capa <span style="text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <textarea id="f-abertura" data-ev="abertura" placeholder="Deixe em branco para usar o texto padrão."></textarea>
+          <span class="dica">Aparece logo abaixo do nome do cliente, na capa.</span>
+        </div>
+        <div class="campo largo">
+          <label for="f-fechamento">Texto de encerramento <span style="text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <textarea id="f-fechamento" data-ev="fechamento" placeholder="Deixe em branco para usar o texto padrão."></textarea>
+          <span class="dica">Aparece na última página, antes do contato.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================ 2 · SELEÇÃO -->
+    <section class="pane nao-imprime" id="pane-selecao">
+      <div class="cabeca">
+        <p class="olho">Etapa 2 · Composição</p>
+        <h1>O que <span class="script">entra</span> neste evento</h1>
+        <p class="lead">Ligue os blocos que o cliente escolheu no cardápio e ajuste os itens de cada um.
+          As regras do cardápio (escolha 1 buffet, 2 Brew Classics, etc.) aparecem em cada bloco —
+          você pode fugir delas, mas a revisão vai avisar.</p>
+      </div>
+      <div id="lista-blocos"></div>
+    </section>
+
+    <!-- ================================================ 3 · REVISÃO -->
+    <section class="pane nao-imprime" id="pane-revisao">
+      <div class="cabeca">
+        <p class="olho">Etapa 3 · Conferência</p>
+        <h1>Antes de <span class="script">enviar</span></h1>
+        <p class="lead">Confira os dados e a composição. É exatamente isso que vai para a apresentação do cliente.</p>
+      </div>
+      <div class="revisao" id="revisao"></div>
+    </section>
+
+    <!-- ========================================== ORÇAMENTOS SALVOS -->
+    <section class="pane nao-imprime" id="pane-orcamentos">
+      <div class="cabeca">
+        <p class="olho">Sua conta · salvos na nuvem</p>
+        <h1>Orçamentos <span class="script">salvos</span></h1>
+        <p class="lead">Tudo o que você monta aqui fica salvo sozinho e aparece igual no celular e no computador.</p>
+      </div>
+      <div class="orc-acoes">
+        <button type="button" class="bt ouro" id="bt-orc-novo">+ Novo orçamento</button>
+        <input type="search" id="f-busca" class="orc-busca" placeholder="Buscar por cliente, ocasião ou nº…" autocomplete="off">
+      </div>
+      <div id="lista-orcamentos" class="orc-lista"></div>
+      <div class="orc-rodape">
+        <button type="button" class="bt fantasma" id="bt-orc-importar">Importar arquivo .json</button>
+        <a class="bt fantasma" href="cardapio/Brew_Cardapio_Eventos.pdf" target="_blank" rel="noopener">Cardápio do cliente (PDF)</a>
+        <button type="button" class="bt fantasma" id="bt-sair">Sair</button>
+      </div>
+    </section>
+
+    <!-- ============================================ TABELA DE PREÇOS -->
+    <section class="pane nao-imprime" id="pane-precos">
+      <div class="cabeca">
+        <p class="olho">Configuração · vale para todos os orçamentos</p>
+        <h1>Tabela <span class="script">de preços</span></h1>
+        <p class="lead">Preço <b>por pessoa</b> em tudo, menos o chopp, que é <b>por litro</b>.
+          Cada preço pode ter faixas por volume — “até 20 pessoas R$ 40, até 40 R$ 35, acima disso R$ 30”.
+          Dentro de um bloco, o preço da opção sobrepõe o do bloco, e o da variação sobrepõe o da opção.</p>
+      </div>
+
+      <div class="precos-topo">
+        <div class="campo">
+          <label for="f-arredondamento">Arredondar a média por pessoa</label>
+          <select id="f-arredondamento"></select>
+        </div>
+        <div class="acoes">
+          <input type="file" id="arquivo-precos" accept="application/json,.json" hidden>
+          <button type="button" class="bt fantasma" id="bt-precos-abrir">Abrir tabela…</button>
+          <button type="button" class="bt fantasma" id="bt-precos-salvar">Salvar tabela</button>
+          <button type="button" class="bt fantasma" id="bt-precos-zerar">Zerar tudo</button>
+        </div>
+      </div>
+
+      <div id="lista-precos"></div>
+    </section>
+
+    <!-- =========================================== 4 · APRESENTAÇÃO -->
+    <section class="pane" id="pane-proposta">
+      <div class="cabeca nao-imprime">
+        <p class="olho">Etapa 4 · Apresentação</p>
+        <h1>A proposta <span class="script">do cliente</span></h1>
+        <p class="lead">Páginas em A4, prontas para enviar. <b>Gerar PDF</b> monta o arquivo aqui mesmo,
+          no celular ou no computador, pronto para mandar no WhatsApp.</p>
+        <p class="lead so-computador" style="margin-top:6px">No computador também dá para
+          <button type="button" class="link" id="bt-imprimir">imprimir</button> — escolha “Salvar como PDF”,
+          margens “Nenhuma” e gráficos de fundo ativados (gera um arquivo mais leve).</p>
+      </div>
+      <div class="palco">
+        <div class="palco-interno" id="palco-interno"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================ BARRA -->
+  <div class="barra nao-imprime">
+    <div class="status-bloco">
+      <div class="status" id="status"></div>
+      <span class="sync" id="sync" hidden></span>
+    </div>
+    <input type="file" id="arquivo" accept="application/json,.json" hidden>
+    <button type="button" class="bt fantasma so-local" id="bt-novo">Nova proposta</button>
+    <button type="button" class="bt fantasma so-local" id="bt-abrir">Abrir…</button>
+    <button type="button" class="bt fantasma so-local" id="bt-salvar">Salvar arquivo</button>
+    <button type="button" class="bt" id="bt-voltar">Voltar</button>
+    <button type="button" class="bt ouro" id="bt-avancar">Avançar</button>
+  </div>
+
+</div>
+
+<!-- ===================================================== LOGIN / CARREGANDO -->
+<div class="entrada nao-imprime" id="tela-entrada" hidden>
+  <div class="entrada-caixa">
+    <img class="entrada-logo" src="assets/logo.png" alt="Brew Bar·B·Q Pub">
+    <p class="olho">Painel de eventos</p>
+    <h1>Brew <span class="script">orçamentos</span></h1>
+    <form id="form-login" autocomplete="on">
+      <label for="f-senha">Senha do administrador</label>
+      <input type="password" id="f-senha" name="password" autocomplete="current-password" required>
+      <button type="submit" class="bt ouro" id="bt-entrar">Entrar</button>
+      <p class="entrada-erro" id="login-erro" hidden></p>
+    </form>
+    <p class="entrada-carregando" id="entrada-carregando" hidden>Carregando sua conta…</p>
+  </div>
+</div>
+
+<!-- ============================================================ GERAR PDF -->
+<div class="entrada nao-imprime" id="tela-pdf" hidden>
+  <div class="entrada-caixa">
+    <p class="olho">Apresentação</p>
+    <h2 class="pdf-titulo" id="pdf-titulo">Gerando o PDF…</h2>
+    <p class="entrada-carregando" id="pdf-progresso"></p>
+    <div class="pdf-acoes" id="pdf-acoes" hidden>
+      <button type="button" class="bt ouro" id="bt-pdf-compartilhar" hidden>Compartilhar</button>
+      <button type="button" class="bt ouro" id="bt-pdf-baixar">Baixar PDF</button>
+      <button type="button" class="bt fantasma" id="bt-pdf-fechar">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/catalogo.js"></script>
+<script src="assets/proposta.js"></script>
+<script src="assets/precos.js"></script>
+<script src="assets/nuvem.js"></script>
+<script src="assets/pdf.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

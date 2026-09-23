@@ -1,0 +1,16 @@
+# Outro projeto, com repositório próprio (cardápio digital / QR Code)
+cardapio-digital/
+
+# Material antigo e PDFs de clientes reais — não vai para o repositório
+referencia/
+
+# Configuração local de ferramentas
+.claude/
+
+# Testes locais e sobras
+_teste*/
+_teste*.html
+*.log
+node_modules/
+.vercel/
+.env*
