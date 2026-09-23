@@ -11,12 +11,6 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "same-origin" }
       ]
-    },
-    {
-      "source": "/(painel.html|assets/(.*)\\.(js|css))",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
     }
   ]
 }
