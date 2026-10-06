@@ -2,14 +2,20 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#17130F">
+<!-- celular: tela travada como aplicativo (sem pinça de zoom) e ocupando
+     até atrás da barra de status do iPhone (viewport-fit + safe-area no CSS) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1E1813">
 <meta name="robots" content="noindex, nofollow">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Brew Orçamentos">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Brew">
+<meta name="format-detection" content="telephone=no">
 <title>Brew Bar·B·Q Pub — Painel de eventos</title>
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/logo.png">
-<link rel="apple-touch-icon" href="assets/logo.png">
+<link rel="apple-touch-icon" href="assets/icones/apple-touch-icon.png">
 <link rel="stylesheet" href="assets/fontes.css">
 <link rel="stylesheet" href="assets/brew.css">
 </head>

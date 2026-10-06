@@ -909,6 +909,8 @@
       : n === 4 ? 'Gerar PDF' : 'Avançar';
     document.body.dataset.tela = String(n);
     window.scrollTo(0, 0);
+    /* no celular quem rola é o miolo, não a página */
+    $('.miolo').scrollTop = 0;
     atualizarStatus();
   }
 
@@ -1156,21 +1158,24 @@
 
   function atualizarStatus() {
     var comp = BREW.compor(estado);
+    /* cada parte num <span>: o separador " · " vem do CSS, e no celular as
+       partes secundárias (data, blocos) somem para caber numa linha só */
     var partes = [];
-    partes.push('<b>' + (comp.evento.cliente || 'Sem cliente') + '</b>');
-    if (comp.evento.data) partes.push(comp.evento.data.curta);
-    if (comp.evento.convidados) partes.push(comp.evento.convidados + ' convidados');
-    partes.push(comp.totalBlocos + ' bloco' + (comp.totalBlocos === 1 ? '' : 's'));
+    var parte = function (cls, html) { partes.push('<span class="st-' + cls + '">' + html + '</span>'); };
+    parte('cliente', '<b>' + esc(comp.evento.cliente || 'Sem cliente') + '</b>');
+    if (comp.evento.data) parte('data', comp.evento.data.curta);
+    if (comp.evento.convidados) parte('conv', esc(comp.evento.convidados) + ' convidados');
+    parte('blocos', comp.totalBlocos + ' bloco' + (comp.totalBlocos === 1 ? '' : 's'));
     var prec = BREW.precificar(estado, precos, comp);
     if (prec.temPreco && prec.pacotes.length) {
-      partes.push('<b>' + BREW.dinheiro(prec.pacotes[0].media) + '/pessoa</b>');
+      parte('valor', '<b>' + BREW.dinheiro(prec.pacotes[0].media) + '/pessoa</b>');
     } else if (comp.totalBlocos) {
-      partes.push('<b style="color:var(--brasa)">sem preço</b>');
+      parte('valor', '<b style="color:var(--brasa)">sem preço</b>');
     }
     var erros = comp.avisos.filter(function (a) { return a.tipo === 'erro'; }).length;
-    if (erros) partes.push('<b style="color:var(--brasa)">' + erros + ' pendência' + (erros === 1 ? '' : 's') + '</b>');
-    if (!temStorage && !NUVEM.ativo) partes.push('<b style="color:var(--brasa)">sem salvamento automático — use “Salvar arquivo”</b>');
-    $('#status').innerHTML = partes.join(' · ');
+    if (erros) parte('pend', '<b style="color:var(--brasa)">' + erros + ' pendência' + (erros === 1 ? '' : 's') + '</b>');
+    if (!temStorage && !NUVEM.ativo) parte('aviso', '<b style="color:var(--brasa)">sem salvamento automático — use “Salvar arquivo”</b>');
+    $('#status').innerHTML = partes.join('');
     mostrarSync();
   }
 

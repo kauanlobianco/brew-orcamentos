@@ -59,6 +59,13 @@ As tabelas têm RLS ligado e nenhuma política: a chave pública (anon) não
 enxerga nada; só as funções do painel, com a chave de serviço, leem e gravam.
 A chave de serviço nunca vai para o navegador nem para o repositório.
 
+**No celular, como aplicativo** — no Safari, *Compartilhar → Adicionar à Tela
+de Início* (no Chrome/Android, *Instalar app*). Abre em tela cheia, com ícone
+próprio (`manifest.webmanifest` e `assets/icones/`). No celular o painel fica
+travado como um app: o topo (etapas) e a barra de baixo (Voltar/Avançar) não
+saem do lugar, só o conteúdo do meio rola, e não tem zoom de pinça nem de toque
+duplo. Os textos explicativos de cada etapa aparecem só no computador.
+
 Aberto como arquivo (duplo clique no `painel.html`), o painel continua
 funcionando só no navegador daquele computador, sem login — como antes.
 
