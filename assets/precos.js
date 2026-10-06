@@ -341,9 +341,12 @@ window.BREW_PRECOS_PADRAO = {
       });
     });
 
-    /* equipe de serviço: valor a cada N convidados, fração conta inteira */
+    var taxa = estado.taxaServico || { ativa: false };
+
+    /* serviço pela equipe: valor a cada N convidados, fração conta inteira —
+       é a alternativa aos 10%, nunca os dois juntos */
     var eq = precos.equipe || {};
-    if ((estado.equipe || {}).ativa && Number(eq.valor) > 0 && convidados > 0) {
+    if (taxa.ativa && taxa.tipo === 'equipe' && Number(eq.valor) > 0 && convidados > 0) {
       var aCada = Math.max(1, Number(eq.aCada) || 20);
       var nBlocos = Math.ceil(convidados / aCada);
       todas.push({
@@ -358,7 +361,6 @@ window.BREW_PRECOS_PADRAO = {
 
     var opcionais = todas.filter(function (l) { return l.opcional; });
     var base = todas.filter(function (l) { return !l.opcional; });
-    var taxa = estado.taxaServico || { ativa: false };
 
     var pacotes = [];
     pacotes.push(montarPacote(
@@ -393,6 +395,7 @@ window.BREW_PRECOS_PADRAO = {
        fixo em R$ por pessoa — sempre somada antes do arredondamento, então
        ela mora dentro do mesmo número redondo que o cliente vê. */
     var taxaValor = 0;
+    if (taxa && taxa.tipo === 'equipe') taxa = null;   /* já entrou como linha */
     if (taxa && taxa.ativa && subtotal > 0) {
       taxaValor = taxa.tipo === 'fixo'
         ? (Number(taxa.valor) || 0)

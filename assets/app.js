@@ -17,6 +17,8 @@
 
   /* ------------------------------------------------------------- ESTADO */
 
+  var TIPOS_SERVICO = ['equipe', 'percentual', 'fixo'];
+
   function estadoVazio() {
     var e = {
       evento: {
@@ -24,12 +26,12 @@
         local: '', numero: '', validade: '', abertura: '', fechamento: ''
       },
       mostrarValor: true,
-      /* Taxa de serviço — soma no valor por pessoa antes do arredondamento.
-         Começa em 10% (padrão do salão); o gestor troca pra "fixo" quando
-         quer um valor certo em R$ por pessoa em vez de percentual. */
-      taxaServico: { ativa: true, tipo: 'percentual', valor: 10 },
-      /* equipe de serviço — valor da tabela a cada N convidados */
-      equipe: { ativa: true },
+      /* Serviço — uma forma só por proposta, sempre dentro do valor por pessoa:
+         'equipe'     R$ 120 a cada 20 convidados (tabela de preços) — padrão
+         'percentual' 10% sobre o subtotal
+         'fixo'       valor certo em R$ por pessoa
+         O "valor" é o % ou o R$ dos dois últimos. */
+      taxaServico: { ativa: true, tipo: 'equipe', valor: 10 },
       blocos: {}
     };
     CAT.categorias.forEach(function (cat) {
@@ -224,13 +226,10 @@
       var t = bruto.taxaServico;
       novo.taxaServico = {
         ativa: !!t.ativa,
-        tipo: t.tipo === 'fixo' ? 'fixo' : 'percentual',
+        tipo: TIPOS_SERVICO.indexOf(t.tipo) >= 0 ? t.tipo : 'percentual',
         valor: Number(t.valor) || 0
       };
     }
-    /* orçamento salvo antes da regra da equipe: fica sem ela, para não mudar
-       o valor que já foi mandado ao cliente */
-    if (bruto) novo.equipe = { ativa: !!(bruto.equipe && bruto.equipe.ativa) };
     /* arquivo local traz a tabela junto; na nuvem a tabela é uma só, da conta,
        e abrir um orçamento antigo não pode sobrescrevê-la */
     if (bruto && bruto.precos && !NUVEM.ativo) precos = BREW.adotarPrecos(bruto.precos);
@@ -707,7 +706,7 @@
         : '<p class="vazio-aviso">Nenhum bloco selecionado ainda — volte para a etapa de seleção.</p>') +
       '</div>';
 
-    var taxaCard = htmlEquipe() + htmlTaxaServico();
+    var taxaCard = htmlTaxaServico();
     var conta = htmlConta(comp);
 
     /* pendências de preço (sem preço / sob consulta) entram junto com as da
@@ -750,57 +749,44 @@
       });
     }
     ligarTaxaServico();
-    var chkEquipe = $('#f-equipe-ativa');
-    if (chkEquipe) {
-      chkEquipe.addEventListener('change', function () {
-        estado.equipe.ativa = this.checked;
-        salvar();
-        renderRevisao();
-      });
-    }
   }
 
-  /* --- equipe de serviço, na revisão --- */
-  function htmlEquipe() {
-    var eq = precos.equipe || {};
-    var conv = Number(estado.evento.convidados) || 0;
-    var aCada = Math.max(1, Number(eq.aCada) || 20);
-    var regra = BREW.dinheiro(eq.valor) + ' a cada ' + aCada + ' convidados';
-    var conta = conv && eq.valor > 0
-      ? ' — ' + Math.ceil(conv / aCada) + ' × ' + BREW.dinheiro(eq.valor) + ' = ' +
-        BREW.dinheiro(Math.ceil(conv / aCada) * eq.valor)
-      : '';
-    return '<div class="ficha-rev">' +
-      '<div class="titulinho">Equipe de serviço</div>' +
-      '<label class="opcao-valor">' +
-      '<input type="checkbox" id="f-equipe-ativa"' + (estado.equipe.ativa ? ' checked' : '') + '>' +
-      ' Cobrar a equipe (' + esc(regra) + ')</label>' +
-      (estado.equipe.ativa && conv ? '<span class="dica" style="display:block;margin-top:10px">' +
-        esc(conta.replace(/^ — /, '')) + ' · entra no valor por pessoa, sem aparecer como linha separada.</span>' : '') +
-      (eq.valor > 0 ? '' : '<span class="dica" style="display:block;margin-top:10px">Sem valor na tabela de preços.</span>') +
-      '</div>';
-  }
-
-  /* --- taxa de serviço, na revisão --- */
+  /* --- serviço, na revisão: equipe (padrão), 10% ou fixo por pessoa --- */
   function htmlTaxaServico() {
     var t = estado.taxaServico;
+    var eq = precos.equipe || {};
+    var aCada = Math.max(1, Number(eq.aCada) || 20);
+    var conv = Number(estado.evento.convidados) || 0;
+    var opc = function (v, txt) {
+      return '<option value="' + v + '"' + (t.tipo === v ? ' selected' : '') + '>' + esc(txt) + '</option>';
+    };
+    var dica;
+    if (t.tipo === 'equipe') {
+      dica = !(eq.valor > 0) ? 'Sem valor de equipe na tabela de preços.'
+        : conv ? Math.ceil(conv / aCada) + ' × ' + BREW.dinheiro(eq.valor) + ' = ' +
+          BREW.dinheiro(Math.ceil(conv / aCada) * eq.valor) + ' para ' + conv + ' convidados'
+          : 'Informe os convidados para calcular.';
+    }
     return '<div class="ficha-rev">' +
-      '<div class="titulinho">Taxa de serviço</div>' +
+      '<div class="titulinho">Serviço</div>' +
       '<label class="opcao-valor">' +
       '<input type="checkbox" id="f-taxa-ativa"' + (t.ativa ? ' checked' : '') + '>' +
-      ' Somar taxa de serviço ao valor por pessoa</label>' +
+      ' Somar o serviço ao valor por pessoa</label>' +
       (t.ativa ? (
         '<div class="taxa-campos">' +
-        '<div class="campo"><label for="f-taxa-tipo">Tipo</label>' +
+        '<div class="campo"><label for="f-taxa-tipo">Forma de cobrar</label>' +
         '<select id="f-taxa-tipo">' +
-        '<option value="percentual"' + (t.tipo === 'percentual' ? ' selected' : '') + '>Percentual sobre o subtotal</option>' +
-        '<option value="fixo"' + (t.tipo === 'fixo' ? ' selected' : '') + '>Valor fixo por pessoa</option>' +
+        opc('equipe', 'Equipe — ' + BREW.dinheiro(eq.valor) + ' a cada ' + aCada + ' convidados') +
+        opc('percentual', 'Percentual sobre o subtotal') +
+        opc('fixo', 'Valor fixo por pessoa') +
         '</select></div>' +
-        '<div class="campo"><label for="f-taxa-valor">' +
-        (t.tipo === 'fixo' ? 'R$ por pessoa' : '% sobre o subtotal') + '</label>' +
-        '<input id="f-taxa-valor" type="number" min="0" step="0.5" value="' + (Number(t.valor) || 0) + '"></div>' +
+        (t.tipo === 'equipe' ? '' :
+          '<div class="campo"><label for="f-taxa-valor">' +
+          (t.tipo === 'fixo' ? 'R$ por pessoa' : '% sobre o subtotal') + '</label>' +
+          '<input id="f-taxa-valor" type="number" min="0" step="0.5" value="' + (Number(t.valor) || 0) + '"></div>') +
         '</div>' +
-        '<span class="dica" style="display:block;margin-top:10px">Entra no valor por pessoa antes do arredondamento — ' +
+        '<span class="dica" style="display:block;margin-top:10px">' + (dica ? esc(dica) + ' · ' : '') +
+        'Entra no valor por pessoa antes do arredondamento — ' +
         'na apresentação some dentro do valor, sem aparecer como nota.</span>'
       ) : '') +
       '</div>';
@@ -817,7 +803,7 @@
     var selTipo = $('#f-taxa-tipo');
     if (selTipo) {
       selTipo.addEventListener('change', function () {
-        estado.taxaServico.tipo = this.value === 'fixo' ? 'fixo' : 'percentual';
+        estado.taxaServico.tipo = TIPOS_SERVICO.indexOf(this.value) >= 0 ? this.value : 'percentual';
         salvar();
         renderRevisao();
       });

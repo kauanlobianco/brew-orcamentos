@@ -24,7 +24,7 @@ function precos(extra) {
 
 /* estado mínimo: { petiscos: ['pet-x', ...], chopp: { 'chopp-heineken': { 50: 2 } } } */
 function estado(blocos, convidados = 50, extra = {}) {
-  const e = { evento: { convidados }, taxaServico: { ativa: false }, equipe: { ativa: false }, blocos: {} };
+  const e = { evento: { convidados }, taxaServico: { ativa: false }, blocos: {} };
   for (const [id, sel] of Object.entries(blocos)) {
     const b = { ativo: true, itens: {}, variacoes: {}, barris: {} };
     if (Array.isArray(sel)) sel.forEach((i) => { b.itens[i] = true; });
@@ -198,14 +198,30 @@ test('música opcional forma o 2º pacote, separada da comida', () => {
 test('equipe: R$ 120 a cada 20 convidados, fração conta inteira', () => {
   const casos = [[1, 120], [20, 120], [21, 240], [40, 240], [41, 360], [60, 360], [61, 480], [80, 480]];
   for (const [conv, total] of casos) {
-    const r = BREW.precificar(estado({ finger: BREW_itens('finger') }, conv, { equipe: { ativa: true } }), precos());
+    const r = BREW.precificar(estado({ finger: BREW_itens('finger') }, conv, { taxaServico: { ativa: true, tipo: 'equipe', valor: 10 } }), precos());
     assert.equal(linha(r, 'equipe').subtotal, total, conv + ' convidados');
   }
 });
 
-test('equipe desligada não entra', () => {
+test('serviço desligado: nem equipe nem taxa', () => {
   const r = BREW.precificar(estado({ finger: BREW_itens('finger') }, 50), precos());
   assert.equal(linha(r, 'equipe'), undefined);
+  assert.equal(r.pacotes[0].media, 110);
+});
+
+test('serviço pela equipe (padrão) não soma os 10%', () => {
+  const e = estado({ finger: BREW_itens('finger') }, 50, { taxaServico: { ativa: true, tipo: 'equipe', valor: 10 } });
+  const r = BREW.precificar(e, precos());
+  /* 110 + (3 × 120) / 50 = 117,20 — sem taxa por cima */
+  assert.equal(r.pacotes[0].taxa, null);
+  assert.ok(Math.abs(r.pacotes[0].media - 117.2) < 1e-9);
+});
+
+test('serviço em 10%: sem a linha da equipe', () => {
+  const e = estado({ finger: BREW_itens('finger') }, 50, { taxaServico: { ativa: true, tipo: 'percentual', valor: 10 } });
+  const r = BREW.precificar(e, precos());
+  assert.equal(linha(r, 'equipe'), undefined);
+  assert.ok(Math.abs(r.pacotes[0].media - 121) < 1e-9);
 });
 
 /* --------------------------------------------------------- conta completa */
@@ -218,11 +234,11 @@ test('evento completo: média, taxa, arredondamento e total', () => {
     naoalc: BREW_itens('naoalc'),                             /* 24,00 */
     chopp: { 'chopp-heineken': { 50: 2 } },                   /* 2800 / 60 */
     musica: ['mus-violao']                                    /* 400 / 60 */
-  }, 60, { equipe: { ativa: true }, taxaServico: { ativa: true, tipo: 'percentual', valor: 10 } });
+  }, 60, { taxaServico: { ativa: true, tipo: 'percentual', valor: 10 } });
   const p = precos({ arredondamento: 'inteiro' });
   const r = BREW.precificar(e, p);
   const pessoa = 59.9 + 81.95 + 45 + 24;
-  const fechado = 2800 + 400 + 360;                           /* chopp + música + equipe (3 × 120) */
+  const fechado = 2800 + 400;                                 /* chopp + música (serviço em 10%) */
   const sub = pessoa + fechado / 60;
   const pac = r.pacotes[0];
   assert.ok(Math.abs(pac.subtotal - sub) < 1e-9);

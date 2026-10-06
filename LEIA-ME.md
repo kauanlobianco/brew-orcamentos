@@ -113,27 +113,32 @@ quando você clica em "Nova proposta".
   bloco" do chopp (por litro) só entra quando o barril não tem preço — e nos
   orçamentos antigos, que eram em litros.
 - **Equipe de serviço** — no topo da tabela: R$ 120 a cada 20 convidados
-  (21 convidados já são 2 blocos). Na revisão dá para desligar por proposta.
-  Orçamentos salvos antes desta regra abrem com ela desligada, para não mudar
-  o valor já enviado.
+  (21 convidados já são 2 blocos). É uma das formas de cobrar o serviço (ver
+  abaixo).
 
 **Arredondamento** — a média por pessoa sai quebrada quando entra chopp na
 conta, então o painel arredonda por uma regra sua: real cheio, terminar em ,90
 ou dezena. O total é sempre `média arredondada × convidados`, que é como os
 orçamentos antigos fecham em números redondos.
 
-**Taxa de serviço** — fica na **etapa de revisão** (não na tabela de preços:
-é por proposta, não do restaurante). Já vem **ligada em 10%**, e dá pra trocar
-o tipo pra **valor fixo por pessoa** em R$ em vez de percentual, ou desligar de
-vez. Ela soma no valor por pessoa antes do arredondamento — não é uma linha
-separada na conta do cliente.
+**Serviço** — fica na **etapa de revisão** (é por proposta). Uma forma só
+por vez, sempre somada ao valor por pessoa antes do arredondamento:
+
+| Forma | Conta |
+|---|---|
+| **Equipe** (já vem selecionada) | R$ 120 a cada 20 convidados, dividido pelos convidados |
+| Percentual | 10% sobre o subtotal por pessoa (o % é editável) |
+| Valor fixo | R$ certo por pessoa |
+
+Dá também para desligar o serviço de vez. Orçamentos salvos antes desta
+mudança abrem com os 10% que tinham, sem alterar o valor já enviado.
 
 **Como a conta fecha:**
 
 ```
 subtotal         = (soma dos preços por pessoa)
-                 + (chopp + música + equipe) ÷ convidados
-+ taxa de serviço (% do subtotal, ou fixo por pessoa)
+                 + (chopp + música + equipe*) ÷ convidados
++ serviço em % ou fixo por pessoa*   (* só uma das formas de serviço)
 = média por pessoa (arredondada)
 total            = média arredondada × convidados
 ```
