@@ -28,13 +28,15 @@
          Começa em 10% (padrão do salão); o gestor troca pra "fixo" quando
          quer um valor certo em R$ por pessoa em vez de percentual. */
       taxaServico: { ativa: true, tipo: 'percentual', valor: 10 },
+      /* equipe de serviço — valor da tabela a cada N convidados */
+      equipe: { ativa: true },
       blocos: {}
     };
     CAT.categorias.forEach(function (cat) {
       cat.blocos.forEach(function (b) {
         e.blocos[b.id] = {
           ativo: false, opcional: false, itens: {}, variacoes: {},
-          litros: b.regra === 'litros' ? b.litros.padrao : null
+          barris: {}, litros: null
         };
       });
     });
@@ -43,7 +45,7 @@
 
   var NUVEM = window.BREW_NUVEM;
   var estado = estadoVazio();
-  var precos = BREW.tabelaVazia();
+  var precos = BREW.adotarPrecos(null);
   var etapa = 1;
   var etapaAnterior = 1;
   var orcId = null;          /* id do orçamento aberto na nuvem (null = ainda não salvo) */
@@ -226,6 +228,9 @@
         valor: Number(t.valor) || 0
       };
     }
+    /* orçamento salvo antes da regra da equipe: fica sem ela, para não mudar
+       o valor que já foi mandado ao cliente */
+    if (bruto) novo.equipe = { ativa: !!(bruto.equipe && bruto.equipe.ativa) };
     /* arquivo local traz a tabela junto; na nuvem a tabela é uma só, da conta,
        e abrir um orçamento antigo não pode sobrescrevê-la */
     if (bruto && bruto.precos && !NUVEM.ativo) precos = BREW.adotarPrecos(bruto.precos);
@@ -238,6 +243,14 @@
         novo.blocos[id].litros = b.litros != null ? b.litros : novo.blocos[id].litros;
         var bloco = IDX.blocos[id];
         (bloco.itens || []).forEach(function (it) {
+          if (bloco.barris && b.barris && b.barris[it.id]) {
+            var q = {};
+            bloco.barris.forEach(function (br) {
+              var n = Math.max(0, Math.floor(Number(b.barris[it.id][br.id]) || 0));
+              if (n) q[br.id] = n;
+            });
+            if (Object.keys(q).length) novo.blocos[id].barris[it.id] = q;
+          }
           if (b.itens && b.itens[it.id]) novo.blocos[id].itens[it.id] = true;
           if (b.variacoes && b.variacoes[it.id] && it.variacoes &&
             it.variacoes.opcoes.indexOf(b.variacoes[it.id]) >= 0) {
@@ -277,7 +290,13 @@
 
   function rotuloRegra(bloco, s) {
     var marcados = Object.keys(s.itens || {}).filter(function (k) { return s.itens[k]; }).length;
-    if (bloco.regra === 'litros') return { txt: 'Defina a quantidade de litros', alerta: false };
+    if (bloco.regra === 'barris') {
+      var l = litrosDoChopp(bloco, s);
+      return {
+        txt: l ? 'Chopp · ' + l + ' litros' : 'Escolha a marca e os barris',
+        alerta: s.ativo && !l
+      };
+    }
     if (bloco.regra === 'completo') {
       var total = (bloco.itens || []).length;
       return {
@@ -292,6 +311,16 @@
       txt: s.ativo ? pedido + ' · ' + marcados + ' marcado' + (marcados === 1 ? '' : 's') : pedido,
       alerta: s.ativo && (marcados < min || marcados > max)
     };
+  }
+
+  function litrosDoChopp(bloco, s) {
+    var total = 0;
+    Object.keys(s.barris || {}).forEach(function (itemId) {
+      bloco.barris.forEach(function (br) {
+        total += (Number(s.barris[itemId][br.id]) || 0) * br.litros;
+      });
+    });
+    return total || Number(s.litros) || 0;
   }
 
   function htmlItem(bloco, item, s) {
@@ -317,17 +346,21 @@
   }
 
   function htmlCorpo(bloco, s) {
-    if (bloco.regra === 'litros') {
-      return '<p class="titulinho">Quantidade de chopp</p>' +
-        '<div class="litros">' +
-        '<input type="number" min="0" step="10" value="' + esc(s.litros || '') +
-        '" data-acao="litros" data-bloco="' + bloco.id + '">' +
-        '<span class="un">litros</span>' +
-        '<div class="pilulas">' + bloco.litros.sugestoes.map(function (n) {
-          return '<button type="button" class="pilula' + (Number(s.litros) === n ? ' on' : '') +
-            '" data-acao="litros-sug" data-bloco="' + bloco.id + '" data-valor="' + n + '">' +
-            n + ' L</button>';
-        }).join('') + '</div></div>';
+    if (bloco.regra === 'barris') {
+      var conv = Number(estado.evento.convidados) || 0;
+      var lt = litrosDoChopp(bloco, s);
+      return '<p class="titulinho">Marca e quantidade de barris</p>' +
+        '<div class="barris">' + (bloco.itens || []).map(function (it) {
+          var q = (s.barris || {})[it.id] || {};
+          return '<div class="barris-linha"><span class="nome">' + esc(it.nome) + '</span>' +
+            bloco.barris.map(function (br) {
+              return '<label class="litros"><input type="number" min="0" step="1" inputmode="numeric" value="' +
+                (Number(q[br.id]) || '') + '" placeholder="0" data-acao="barris" data-bloco="' + bloco.id +
+                '" data-item="' + it.id + '" data-barril="' + br.id + '">' +
+                '<span class="un">× ' + br.litros + ' L</span></label>';
+            }).join('') + '</div>';
+        }).join('') + '</div>' +
+        '<p class="dica barris-total">' + totalChoppTxt(lt, conv) + '</p>';
     }
     var titulo = bloco.regra === 'completo'
       ? 'Itens inclusos · desmarque o que não entra neste evento'
@@ -335,6 +368,12 @@
     return '<p class="titulinho">' + esc(titulo) + '</p><div class="itens">' +
       (bloco.itens || []).map(function (it) { return htmlItem(bloco, it, s); }).join('') +
       '</div>';
+  }
+
+  function totalChoppTxt(litros, conv) {
+    if (!litros) return 'Nenhum barril ainda.';
+    return 'Total: ' + litros + ' litros' +
+      (conv ? ' · ' + (litros / conv).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' L por convidado' : '');
   }
 
   function htmlBloco(bloco) {
@@ -381,7 +420,6 @@
     if (s.ativo && bloco.regra === 'completo') {
       (bloco.itens || []).forEach(function (it) { s.itens[it.id] = true; });
     }
-    if (s.ativo && bloco.regra === 'litros' && !s.litros) s.litros = bloco.litros.padrao;
   }
 
   function marcarItem(blocoId, itemId) {
@@ -411,7 +449,6 @@
       else if (acao === 'opcional') estado.blocos[id].opcional = !estado.blocos[id].opcional;
       else if (acao === 'item') marcarItem(id, bt.dataset.item);
       else if (acao === 'variacao') estado.blocos[id].variacoes[bt.dataset.item] = bt.dataset.valor;
-      else if (acao === 'litros-sug') estado.blocos[id].litros = Number(bt.dataset.valor);
       else return;
 
       redesenharBloco(id);
@@ -420,14 +457,23 @@
     });
 
     $('#lista-blocos').addEventListener('input', function (ev) {
-      var campo = ev.target.closest('[data-acao="litros"]');
+      var campo = ev.target.closest('[data-acao="barris"]');
       if (!campo) return;
-      estado.blocos[campo.dataset.bloco].litros = Number(campo.value) || 0;
+      var bloco = IDX.blocos[campo.dataset.bloco], s = estado.blocos[bloco.id];
+      var item = campo.dataset.item;
+      var q = s.barris[item] = s.barris[item] || {};
+      var n = Math.max(0, Math.floor(Number(campo.value) || 0));
+      if (n) q[campo.dataset.barril] = n; else delete q[campo.dataset.barril];
+      if (!Object.keys(q).length) delete s.barris[item];
+      s.litros = null;      /* barris substituem os litros dos orçamentos antigos */
       /* sem redesenhar: o foco do campo tem que continuar onde está */
       var art = campo.closest('.bloco');
-      $$('.pilula', art).forEach(function (p) {
-        p.classList.toggle('on', Number(p.dataset.valor) === Number(campo.value));
-      });
+      var r = rotuloRegra(bloco, s);
+      var regra = $('.regra', art);
+      regra.textContent = r.txt;
+      regra.classList.toggle('alerta', r.alerta);
+      $('.barris-total', art).textContent =
+        totalChoppTxt(litrosDoChopp(bloco, s), Number(estado.evento.convidados) || 0);
       salvar();
       atualizarStatus();
     });
@@ -435,11 +481,11 @@
 
   /* --------------------------------------------------- TABELA DE PREÇOS */
 
-  function htmlFaixa(chave, faixa, i, unidade, porUnidade, ultima) {
+  function htmlFaixa(chave, faixa, i, unidade, porUnidade, ultima, passoAte) {
     var aberta = faixa.ate == null;
     return '<div class="faixa" data-chave="' + esc(chave) + '" data-i="' + i + '">' +
       '<span class="lab">' + (aberta ? 'acima' : 'até') + '</span>' +
-      '<input class="ate" type="number" min="1" step="1" ' +
+      '<input class="ate" type="number" min="0" step="' + (passoAte || 1) + '" ' +
       (aberta ? 'disabled value="" placeholder="∞"' : 'value="' + esc(faixa.ate) + '"') + '>' +
       '<span class="lab">' + unidade + '</span>' +
       '<span class="lab">R$</span>' +
@@ -452,13 +498,27 @@
 
   function htmlEntradaPreco(l) {
     var faixas = precos.tabela[l.chave] || [{ ate: null, valor: 0 }];
-    var litro = l.bloco.preco && l.bloco.preco.modo === 'litro';
-    var unidade = litro ? 'litros' : 'pessoas';
-    var porUnidade = litro ? '/litro' : '/pessoa';
+    var modo = (l.bloco.preco && l.bloco.preco.modo) || 'pessoa';
+    var unidade = 'pessoas', porUnidade = modo === 'evento' ? '/evento' : '/pessoa', passo = 1;
     var rot, sub;
-    if (l.nivel === 'bloco') {
+    if (l.nivel === 'comercial') {
+      rot = l.rotulo;
+      sub = 'o “até” é a soma dos itens escolhidos; R$ 0 no “acima” cobra a própria soma';
+      unidade = 'na soma'; passo = 0.01;
+    } else if (l.nivel === 'bloco') {
       rot = 'Preço do bloco';
-      sub = l.bloco.preco && l.bloco.preco.porItem ? 'usado quando a opção não tem preço' : '';
+      if (modo === 'barril') {
+        sub = 'por litro — só quando o barril não tem preço próprio';
+        unidade = 'litros'; porUnidade = '/litro';
+      } else if (l.bloco.preco && l.bloco.preco.combinar === 'soma-faixa') {
+        sub = 'preço único por pessoa, só quando algum item não tem preço';
+      } else {
+        sub = l.bloco.preco && l.bloco.preco.porItem ? 'usado quando a opção não tem preço' : '';
+      }
+    } else if (l.nivel === 'barril') {
+      rot = l.rotulo;
+      sub = 'barril';
+      unidade = 'barris'; porUnidade = '/barril';
     } else {
       rot = l.rotulo;
       sub = l.nivel === 'item' ? 'opção' : 'variação';
@@ -469,11 +529,20 @@
       '<div class="rot">' + esc(rot) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>' +
       '<div class="faixas">' +
       faixas.map(function (f, i) {
-        return htmlFaixa(l.chave, f, i, unidade, porUnidade, i === faixas.length - 1);
+        return htmlFaixa(l.chave, f, i, unidade, porUnidade, i === faixas.length - 1, passo);
       }).join('') +
       '<button type="button" class="add-faixa" data-chave="' + esc(l.chave) + '">+ faixa</button>' +
       '</div></div>';
   }
+
+  var MODOS = {
+    pessoa: 'por pessoa', evento: 'valor do evento', barril: 'por barril'
+  };
+  var COMBINAR = {
+    'soma-faixa': 'soma dos itens na faixa comercial',
+    media: 'média das opções',
+    maior: 'a opção mais cara define'
+  };
 
   function renderPrecos() {
     var sel = $('#f-arredondamento');
@@ -481,6 +550,8 @@
       return '<option value="' + a.id + '">' + esc(a.rot) + ' — ex.: ' + esc(a.ex) + '</option>';
     }).join('');
     sel.value = precos.arredondamento;
+    $('#f-equipe-valor').value = Number(precos.equipe.valor) || 0;
+    $('#f-equipe-cada').value = Number(precos.equipe.aCada) || 20;
 
     var html = '', atual = null;
     BREW.chavesDePreco().forEach(function (l) {
@@ -491,7 +562,8 @@
           '<div class="preco-cab">' +
           '<span class="num">Bloco ' + esc(atual.numero) + '</span>' +
           '<h3>' + esc(atual.nome) + '</h3>' +
-          '<span class="modo">' + (atual.preco.modo === 'litro' ? 'por litro' : 'por pessoa') + '</span>' +
+          '<span class="modo">' + MODOS[atual.preco.modo || 'pessoa'] +
+          (atual.preco.combinar ? ' · ' + COMBINAR[atual.preco.combinar] : '') + '</span>' +
           '</div>';
       }
       html += htmlEntradaPreco(l);
@@ -514,6 +586,16 @@
   function ligarPrecos() {
     $('#f-arredondamento').addEventListener('change', function () {
       precos.arredondamento = this.value;
+      salvarPrecos();
+      atualizarStatus();
+    });
+    $('#f-equipe-valor').addEventListener('input', function () {
+      precos.equipe.valor = Number(this.value) || 0;
+      salvarPrecos();
+      atualizarStatus();
+    });
+    $('#f-equipe-cada').addEventListener('input', function () {
+      precos.equipe.aCada = Math.max(1, Math.round(Number(this.value) || 0)) || 20;
       salvarPrecos();
       atualizarStatus();
     });
@@ -545,7 +627,7 @@
         var chave = add.dataset.chave;
         var f = precos.tabela[chave];
         var maior = f.reduce(function (m, x) { return x.ate != null && x.ate > m ? x.ate : m; }, 0);
-        f.push({ ate: maior + 20, valor: f[f.length - 1].valor });
+        f.push({ ate: maior + (chave.indexOf('#faixas') > 0 ? 10 : 20), valor: f[f.length - 1].valor });
         normalizarFaixas(chave);
         salvarPrecos();
         renderPrecos();
@@ -625,9 +707,19 @@
         : '<p class="vazio-aviso">Nenhum bloco selecionado ainda — volte para a etapa de seleção.</p>') +
       '</div>';
 
-    var taxaCard = htmlTaxaServico();
+    var taxaCard = htmlEquipe() + htmlTaxaServico();
     var conta = htmlConta(comp);
 
+    /* pendências de preço (sem preço / sob consulta) entram junto com as da
+       composição */
+    if (comp.totalBlocos) {
+      var conv = Number(comp.evento.convidados) > 0;
+      if (conv) {
+        BREW.precificar(estado, precos, comp).pendencias.forEach(function (t) {
+          comp.avisos.push({ tipo: 'erro', texto: t });
+        });
+      }
+    }
     var erros = comp.avisos.filter(function (a) { return a.tipo === 'erro'; });
     var avisos = comp.avisos.filter(function (a) { return a.tipo === 'aviso'; });
     var caixa;
@@ -658,6 +750,35 @@
       });
     }
     ligarTaxaServico();
+    var chkEquipe = $('#f-equipe-ativa');
+    if (chkEquipe) {
+      chkEquipe.addEventListener('change', function () {
+        estado.equipe.ativa = this.checked;
+        salvar();
+        renderRevisao();
+      });
+    }
+  }
+
+  /* --- equipe de serviço, na revisão --- */
+  function htmlEquipe() {
+    var eq = precos.equipe || {};
+    var conv = Number(estado.evento.convidados) || 0;
+    var aCada = Math.max(1, Number(eq.aCada) || 20);
+    var regra = BREW.dinheiro(eq.valor) + ' a cada ' + aCada + ' convidados';
+    var conta = conv && eq.valor > 0
+      ? ' — ' + Math.ceil(conv / aCada) + ' × ' + BREW.dinheiro(eq.valor) + ' = ' +
+        BREW.dinheiro(Math.ceil(conv / aCada) * eq.valor)
+      : '';
+    return '<div class="ficha-rev">' +
+      '<div class="titulinho">Equipe de serviço</div>' +
+      '<label class="opcao-valor">' +
+      '<input type="checkbox" id="f-equipe-ativa"' + (estado.equipe.ativa ? ' checked' : '') + '>' +
+      ' Cobrar a equipe (' + esc(regra) + ')</label>' +
+      (estado.equipe.ativa && conv ? '<span class="dica" style="display:block;margin-top:10px">' +
+        esc(conta.replace(/^ — /, '')) + ' · entra no valor por pessoa, sem aparecer como linha separada.</span>' : '') +
+      (eq.valor > 0 ? '' : '<span class="dica" style="display:block;margin-top:10px">Sem valor na tabela de preços.</span>') +
+      '</div>';
   }
 
   /* --- taxa de serviço, na revisão --- */
@@ -722,12 +843,20 @@
     if (!prec.linhas.length) return '';
 
     var linhas = prec.linhas.map(function (l) {
-      var detalhe = l.tipo === 'fechado'
-        ? d(l.unit) + ' × ' + l.qtd + ' litros'
-        : d(l.unit) + ' por pessoa' + (prec.convidados ? ' × ' + prec.convidados : '');
+      var detalhe;
+      if (l.tipo === 'pessoa') {
+        detalhe = d(l.unit) + ' por pessoa' + (prec.convidados ? ' × ' + prec.convidados : '') +
+          (l.detalhe ? ' · ' + l.detalhe : '');
+      } else if (l.litros) {
+        detalhe = l.detalhe + (prec.convidados
+          ? ' · ' + (l.litros / prec.convidados).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' L por pessoa'
+          : '');
+      } else {
+        detalhe = l.detalhe || 'valor fechado do evento';
+      }
       return '<div class="l' + (l.semPreco ? ' sem' : '') + (l.opcional ? ' opc' : '') + '">' +
         '<span class="nome">' + esc(l.bloco.nome) +
-        '<small>' + esc(l.semPreco ? 'sem preço na tabela' : detalhe) + '</small></span>' +
+        '<small>' + esc(l.consulta ? 'sob consulta nesta faixa' : l.semPreco ? 'sem preço na tabela' : detalhe) + '</small></span>' +
         '<span class="v">' + (l.semPreco ? '—' : d(l.subtotal)) + '</span></div>';
     }).join('');
 
@@ -927,7 +1056,7 @@
       descarregar().then(function () {
         NUVEM.sair();
         trocarPara(estadoVazio(), null);
-        precos = BREW.tabelaVazia();
+        precos = BREW.adotarPrecos(null);
         listaCache = [];
         mostrarEntrada('login');
       });
@@ -952,7 +1081,7 @@
   function carregarConta() {
     mostrarEntrada('carregando');
     NUVEM.carregarPrecos().then(function (p) {
-      precos = p ? BREW.adotarPrecos(p) : BREW.tabelaVazia();
+      precos = BREW.adotarPrecos(p);
       trocarPara(estadoVazio(), null);
       mostrarEntrada(null);
       irPara(6);

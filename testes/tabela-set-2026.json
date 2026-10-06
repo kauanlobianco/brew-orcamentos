@@ -1,0 +1,266 @@
+{
+  "versao": 1,
+  "tabela": {
+    "petiscos": [
+      {
+        "ate": 30,
+        "valor": 69.9
+      },
+      {
+        "ate": null,
+        "valor": 79.9
+      }
+    ],
+    "pet-pasteis": [
+      {
+        "ate": null,
+        "valor": 12.9
+      }
+    ],
+    "pet-croquete": [
+      {
+        "ate": null,
+        "valor": 9.9
+      }
+    ],
+    "pet-polenta": [
+      {
+        "ate": null,
+        "valor": 8.9
+      }
+    ],
+    "pet-batata": [
+      {
+        "ate": null,
+        "valor": 8.9
+      }
+    ],
+    "pet-aipim": [
+      {
+        "ate": null,
+        "valor": 8.9
+      }
+    ],
+    "pet-torresmo": [
+      {
+        "ate": null,
+        "valor": 12.9
+      }
+    ],
+    "pet-caponata": [
+      {
+        "ate": null,
+        "valor": 8.9
+      }
+    ],
+    "pet-frango": [
+      {
+        "ate": null,
+        "valor": 11.9
+      }
+    ],
+    "pet-dadinho": [
+      {
+        "ate": null,
+        "valor": 11.9
+      }
+    ],
+    "pet-bacalhau": [
+      {
+        "ate": null,
+        "valor": 12.9
+      }
+    ],
+    "pet-texasbbq": [
+      {
+        "ate": null,
+        "valor": 12.9
+      }
+    ],
+    "pet-linguica": [
+      {
+        "ate": null,
+        "valor": 12.9
+      }
+    ],
+    "buffets": [
+      {
+        "ate": null,
+        "valor": 0
+      }
+    ],
+    "buf-feijoada": [
+      {
+        "ate": null,
+        "valor": 69.9
+      }
+    ],
+    "buf-steakhouse": [
+      {
+        "ate": null,
+        "valor": 89.9
+      }
+    ],
+    "buf-steakhouse::Filé mignon ao molho madeira": [
+      {
+        "ate": null,
+        "valor": 89.9
+      }
+    ],
+    "buf-steakhouse::Fraldinha": [
+      {
+        "ate": null,
+        "valor": 79.9
+      }
+    ],
+    "buf-steakhouse::Frango piamontese Brew": [
+      {
+        "ate": null,
+        "valor": 69.9
+      }
+    ],
+    "buf-parrilla": [
+      {
+        "ate": null,
+        "valor": 99
+      }
+    ],
+    "buf-massas": [
+      {
+        "ate": null,
+        "valor": 59
+      }
+    ],
+    "classics": [
+      {
+        "ate": null,
+        "valor": 89
+      }
+    ],
+    "bc-linguado": [
+      {
+        "ate": null,
+        "valor": 84
+      }
+    ],
+    "bc-mignon": [
+      {
+        "ate": null,
+        "valor": 79.9
+      }
+    ],
+    "bc-oswaldo": [
+      {
+        "ate": null,
+        "valor": 79.9
+      }
+    ],
+    "bc-shrimp": [
+      {
+        "ate": null,
+        "valor": 89
+      }
+    ],
+    "finger": [
+      {
+        "ate": null,
+        "valor": 110
+      }
+    ],
+    "frios": [
+      {
+        "ate": null,
+        "valor": 0
+      }
+    ],
+    "frios-essencial": [
+      {
+        "ate": null,
+        "valor": 69.9
+      }
+    ],
+    "frios-completa": [
+      {
+        "ate": null,
+        "valor": 89.9
+      }
+    ],
+    "chopp": [
+      {
+        "ate": 30,
+        "valor": 27
+      },
+      {
+        "ate": null,
+        "valor": 24
+      }
+    ],
+    "drinks": [
+      {
+        "ate": 20,
+        "valor": 75
+      },
+      {
+        "ate": 40,
+        "valor": 49.9
+      },
+      {
+        "ate": 60,
+        "valor": 45
+      },
+      {
+        "ate": 80,
+        "valor": 43
+      },
+      {
+        "ate": 100,
+        "valor": 40
+      },
+      {
+        "ate": 120,
+        "valor": 40
+      },
+      {
+        "ate": 140,
+        "valor": 40
+      },
+      {
+        "ate": 160,
+        "valor": 40
+      },
+      {
+        "ate": null,
+        "valor": 0
+      }
+    ],
+    "naoalc": [
+      {
+        "ate": null,
+        "valor": 24
+      }
+    ],
+    "musica": [
+      {
+        "ate": null,
+        "valor": 0
+      }
+    ],
+    "mus-banda": [
+      {
+        "ate": null,
+        "valor": 2000
+      }
+    ],
+    "mus-violao": [
+      {
+        "ate": null,
+        "valor": 400
+      }
+    ]
+  },
+  "arredondamento": "inteiro",
+  "inclusosExtras": [
+    "Equipe de serviço durante todo o evento"
+  ],
+  "nota": "Valor fechado — sem cobranças extras além do combinado. Consumos fora do cardápio são acertados à parte, ao fim do evento."
+}

@@ -98,14 +98,33 @@ window.BREW = window.BREW || {};
         var sel = (estado.blocos || {})[bloco.id];
         if (!sel || !sel.ativo) return;
 
-        var itens = (bloco.itens || []).filter(function (it) {
-          return (sel.itens || {})[it.id];
-        });
+        var itens, barris = [], litros = sel.litros;
+        if (bloco.regra === 'barris') {
+          /* chopp: a marca entra quando tem pelo menos um barril */
+          itens = (bloco.itens || []).filter(function (it) {
+            var q = (sel.barris || {})[it.id] || {};
+            var tem = false;
+            bloco.barris.forEach(function (br) {
+              var n = Math.max(0, Math.floor(Number(q[br.id]) || 0));
+              if (n > 0) { barris.push({ item: it, barril: br, qtd: n }); tem = true; }
+            });
+            return tem;
+          });
+          /* orçamento antigo, só com litros: continua valendo */
+          if (barris.length) {
+            litros = barris.reduce(function (a, b) { return a + b.qtd * b.barril.litros; }, 0);
+          }
+        } else {
+          itens = (bloco.itens || []).filter(function (it) {
+            return (sel.itens || {})[it.id];
+          });
+        }
         blocos.push({
           bloco: bloco,
           itens: itens,
           variacoes: sel.variacoes || {},
-          litros: sel.litros
+          barris: barris,
+          litros: litros
         });
         comp.totalBlocos++;
         comp.totalItens += itens.length;
@@ -133,10 +152,10 @@ window.BREW = window.BREW || {};
             texto: 'Bloco ' + bloco.numero + ' · ' + bloco.nome + ' está ligado sem nenhum item marcado.'
           });
         }
-        if (bloco.regra === 'litros' && !(Number(sel.litros) > 0)) {
+        if (bloco.regra === 'barris' && !(Number(litros) > 0)) {
           comp.avisos.push({
             tipo: 'erro',
-            texto: 'Bloco ' + bloco.numero + ' · ' + bloco.nome + ': informe a quantidade de litros.'
+            texto: 'Bloco ' + bloco.numero + ' · ' + bloco.nome + ': escolha a marca e a quantidade de barris.'
           });
         }
       });
@@ -172,9 +191,32 @@ window.BREW = window.BREW || {};
   };
 
   /* Resumo curto de um bloco — usado na revisão e no status */
+  /* "Heineken" · "Brahma e Heineken" */
+  BREW.marcasDoChopp = function (linha) {
+    var n = (linha.itens || []).map(function (it) { return it.nome; });
+    return n.length > 1 ? n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1] : (n[0] || '');
+  };
+
+  /* "2 barris de 50 L + 1 barril de 30 L" (somando as marcas) */
+  BREW.barrisDoChopp = function (linha) {
+    var porTam = {};
+    (linha.barris || []).forEach(function (b) {
+      porTam[b.barril.litros] = (porTam[b.barril.litros] || 0) + b.qtd;
+    });
+    return Object.keys(porTam).sort(function (a, b) { return b - a; }).map(function (l) {
+      var n = porTam[l];
+      return n + (n === 1 ? ' barril' : ' barris') + ' de ' + l + ' L';
+    }).join(' + ');
+  };
+
   BREW.resumoBloco = function (linha) {
     var b = linha.bloco;
-    if (b.regra === 'litros') return (linha.litros || 0) + ' litros';
+    if (b.regra === 'barris') {
+      if (!(linha.barris || []).length) return (linha.litros || 0) + ' litros';
+      return linha.barris.map(function (x) {
+        return x.qtd + '× ' + x.item.nome + ' ' + x.barril.litros + ' L';
+      }).join(' · ') + ' — ' + linha.litros + ' litros';
+    }
     var nomes = linha.itens.map(function (it) {
       var v = linha.variacoes[it.id];
       return it.nome + (v ? ' (' + v + ')' : '');
@@ -200,13 +242,18 @@ window.BREW = window.BREW || {};
     return '<div class="' + (cls || 'foto') + '"><img src="assets/img/' + esc(arq) + '" alt=""></div>';
   }
 
-  /* {item} = opção escolhida no bloco · {litros} = litros de chopp */
+  /* {item} = opção escolhida no bloco · {litros} = litros de chopp ·
+     {marcas} = marcas do chopp · {barris} = "2 barris de 50 L" */
   function preencher(txt, linha) {
     if (!txt) return '';
     var it = linha.itens[0];
+    var marcas = linha.bloco.regra === 'barris' ? BREW.marcasDoChopp(linha) : '';
+    var barris = linha.bloco.regra === 'barris' ? BREW.barrisDoChopp(linha) : '';
     return String(txt)
       .replace(/\{item\}/g, it ? it.nome : '')
-      .replace(/\{litros\}/g, linha.litros || 0);
+      .replace(/\{litros\}/g, linha.litros || 0)
+      .replace(/ ?\{marcas\}/g, marcas ? ' ' + marcas : '')
+      .replace(/\{barris\}( · )?/g, function (m, sep) { return barris ? barris + (sep || '') : ''; });
   }
 
   function cfg(linha) {
@@ -293,7 +340,11 @@ window.BREW = window.BREW || {};
     comp.categorias.forEach(function (g) {
       g.blocos.forEach(function (linha) {
         var b = linha.bloco;
-        if (b.regra === 'litros') { partes.push((linha.litros || 0) + ' litros de chopp'); return; }
+        if (b.regra === 'barris') {
+          var marcas = BREW.marcasDoChopp(linha);
+          partes.push((linha.litros || 0) + ' litros de chopp' + (marcas ? ' ' + marcas : ''));
+          return;
+        }
         if (b.escolha && b.escolha.max === 1 && linha.itens.length === 1) { partes.push(linha.itens[0].nome); return; }
         partes.push(b.nome);
       });

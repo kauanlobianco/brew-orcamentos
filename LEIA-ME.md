@@ -81,11 +81,14 @@ Fica no botão **Tabela de preços**, no canto do topo. Ela é do **restaurante*
 não da proposta: vale para todos os orçamentos, é salva separada e **não some**
 quando você clica em "Nova proposta".
 
-- Tudo é **por pessoa**, menos o **chopp**, que é **por litro**.
+- Quase tudo é **por pessoa**. O **chopp** é **por barril** (cada marca tem
+  o preço do barril de 30 L e do de 50 L) e a **música** é **valor fechado do
+  evento** (o cachê entra dividido pelos convidados).
 - Cada preço pode ter **faixas por volume**:
   `até 20 pessoas R$ 40 · até 40 R$ 35 · acima disso R$ 30`.
   Clique em **+ faixa** para acrescentar. A última faixa é sempre o "acima de".
-  No chopp as faixas são por litro (`até 30 litros R$ 30/litro…`).
+  **R$ 0 numa faixa = sob consulta** (ex.: drinks acima de 160 convidados): o
+  bloco fica sem preço e a revisão aponta a pendência.
 - Dentro de um bloco valem três níveis, do mais específico para o mais geral:
 
   | Nível | Exemplo | Quando usar |
@@ -94,8 +97,25 @@ quando você clica em "Nova proposta".
   | Opção | Parrilla Brew | cada buffet custa diferente |
   | Bloco | Os buffets | preço único, sem distinção |
 
-  O painel usa o primeiro que estiver preenchido. Se um bloco de escolha tiver
-  mais de uma opção marcada (Brew Classics), **a mais cara define o preço**.
+  O painel usa o primeiro que estiver preenchido. Com mais de uma opção marcada,
+  cada bloco junta os preços do seu jeito (`preco.combinar` no catálogo):
+
+  | Bloco | Regra |
+  |---|---|
+  | Petiscos | **soma** dos itens escolhidos e enquadra na **faixa comercial**: soma até R$ 59,90 → R$ 59,90 · até R$ 69,90 → R$ 69,90 · até R$ 79,90 → R$ 79,90 · acima disso cobra a própria soma. As faixas ficam em "Faixas comerciais", editáveis. |
+  | Brew Classics | **média** dos dois pratos (cada convidado come um deles): Linguado + Mignon = R$ 81,95 |
+  | Demais | a opção mais cara define |
+
+- **Chopp** — na seleção, cada marca (Brahma, Amstel, Heineken) tem a
+  quantidade de barris de 30 L e de 50 L; os litros saem da soma e o painel
+  mostra quantos litros dá por convidado. Preços iniciais: Brahma e Amstel
+  R$ 800 (30 L) / R$ 1.200 (50 L), Heineken R$ 900 / R$ 1.400. O "preço do
+  bloco" do chopp (por litro) só entra quando o barril não tem preço — e nos
+  orçamentos antigos, que eram em litros.
+- **Equipe de serviço** — no topo da tabela: R$ 120 a cada 20 convidados
+  (21 convidados já são 2 blocos). Na revisão dá para desligar por proposta.
+  Orçamentos salvos antes desta regra abrem com ela desligada, para não mudar
+  o valor já enviado.
 
 **Arredondamento** — a média por pessoa sai quebrada quando entra chopp na
 conta, então o painel arredonda por uma regra sua: real cheio, terminar em ,90
@@ -111,7 +131,8 @@ separada na conta do cliente.
 **Como a conta fecha:**
 
 ```
-subtotal         = (soma dos preços por pessoa) + (chopp ÷ convidados)
+subtotal         = (soma dos preços por pessoa)
+                 + (chopp + música + equipe) ÷ convidados
 + taxa de serviço (% do subtotal, ou fixo por pessoa)
 = média por pessoa (arredondada)
 total            = média arredondada × convidados
@@ -192,6 +213,13 @@ mas **não bloqueia** — quem decide é o gestor:
   mas dá pra desmarcar um item pontual
 - Prato principal → o cardápio prevê 1 entre os blocos 02–05; mais de um vira
   aviso de "confirme se é intencional"
+
+## Testes
+
+`node --test testes/*.test.mjs` confere o motor de preços contra a tabela de
+set/2026 (`testes/tabela-set-2026.json`): faixas dos petiscos, média do
+Classics, barris de chopp, drinks sob consulta, música, equipe e a conta
+completa com taxa e arredondamento.
 
 ## Arquivos
 
