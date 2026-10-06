@@ -29,6 +29,11 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html, body { background: var(--carvao); }
+html {
+  -webkit-text-size-adjust: 100%;          /* iPhone deitado não infla a letra */
+  touch-action: manipulation;              /* toque duplo não dá zoom */
+  -webkit-tap-highlight-color: transparent;
+}
 body {
   font-family: var(--corpo);
   color: var(--creme);
@@ -40,7 +45,7 @@ body {
 
 [hidden] { display: none !important; }
 img { display: block; max-width: 100%; }
-button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; -webkit-user-select: none; user-select: none; }
 input, select, textarea { font: inherit; color: inherit; }
 
 .olho {
@@ -233,9 +238,29 @@ button.link {
 
 /* barris de chopp: uma linha por marca */
 .barris { display: grid; gap: 8px; }
-.barris-linha { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.barris-linha { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
 .barris-linha .nome { min-width: 84px; font-size: 14px; color: var(--creme); }
-.barris-linha .litros input { width: 64px; }
+.contadores { display: flex; gap: 10px; flex-wrap: wrap; }
+.contador {
+  display: flex; align-items: center; gap: 4px;
+  border: 1px solid var(--linha); border-radius: var(--raio); background: var(--carvao);
+  padding: 4px 4px 4px 12px; transition: .15s;
+}
+.contador.on { border-color: var(--ouro); background: rgba(204, 150, 20, .1); }
+.contador .un { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; color: var(--suave); margin-right: 6px; white-space: nowrap; }
+.contador .n {
+  min-width: 26px; text-align: center;
+  font-family: var(--display); font-size: 17px; color: var(--suave);
+}
+.contador.on .n { color: var(--ouro); }
+.contador button {
+  width: 38px; height: 38px; border-radius: 6px; border: 1px solid var(--linha);
+  font-size: 20px; line-height: 1; color: var(--creme); background: transparent; transition: .15s;
+  touch-action: manipulation;      /* toque rápido sem dar zoom no iPhone */
+}
+.contador button:hover:not(:disabled) { border-color: var(--ouro); color: var(--ouro); }
+.contador button:disabled { opacity: .3; cursor: default; }
+.contador .mais { border-color: rgba(204, 150, 20, .5); }
 .barris-total { margin-top: 10px; font-size: 12px; color: rgba(242, 233, 216, .5); }
 
 /* ---------------------------------------------------------------- revisão */
@@ -396,6 +421,7 @@ button.link {
   color: rgba(242, 233, 216, .45);
 }
 .barra .status b { color: var(--ouro); font-family: var(--corpo); font-weight: 600; letter-spacing: 0; }
+.barra .status > span + span::before { content: " · "; }
 
 /* indicador de salvamento na nuvem */
 .sync {
@@ -679,6 +705,7 @@ a.bt { text-decoration: none; display: inline-block; }
   /* imprime só as folhas da proposta: reexibe a cadeia até #pane-proposta
      e esconde o resto do painel (as outras etapas e a moldura) */
   .app, .miolo, #pane-proposta { display: block !important; padding: 0 !important; margin: 0 !important; max-width: none !important; min-height: 0 !important; }
+  html, body, .app, .miolo { position: static !important; height: auto !important; overflow: visible !important; }
   .nao-imprime, .pane:not(#pane-proposta) { display: none !important; }
   .palco { padding: 0 !important; border: 0 !important; background: none !important; overflow: visible !important; }
   .palco-interno { display: block !important; gap: 0 !important; zoom: 1 !important; }
@@ -688,10 +715,44 @@ a.bt { text-decoration: none; display: inline-block; }
 
 /* =================================================================== TELAS */
 
-@media (max-width: 900px) {
+/* tela de toque: o "passar o mouse" fica grudado depois do toque — desliga */
+@media (hover: none) {
+  .passo-btn:not([aria-current]):hover { background: transparent; border-color: transparent; color: var(--suave); }
+  .bt:hover { background: transparent; border-color: var(--linha-forte); }
+  .bt.fantasma:hover { border-color: transparent; color: var(--suave); }
+  .bt.ouro:hover { background: var(--ouro); border-color: var(--ouro); }
+  .bt-precos:not(.on):hover, .bt-edit:hover { color: var(--suave); border-color: var(--linha); }
+  .item-chk:not(.on):hover, .pilula:not(.on):hover { border-color: var(--linha); }
+  .pilula:not(.on):hover { color: var(--suave); }
+  .contador button:hover:not(:disabled) { border-color: var(--linha); color: var(--creme); }
+  .contador .mais:hover:not(:disabled) { border-color: rgba(204, 150, 20, .5); }
+}
+
+@media screen and (max-width: 900px) {
+  /* ---- estrutura de aplicativo: topo e barra fixos, só o miolo rola.
+     A página em si nunca rola nem "estica" (sem puxar para atualizar, sem o
+     topo sumindo) — fica parada como um app instalado. */
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  .app {
+    position: fixed; inset: 0; min-height: 0;
+    height: 100vh; height: 100dvh;
+  }
+  .topo { position: relative; flex: none; padding-top: calc(10px + env(safe-area-inset-top)); }
+  .miolo {
+    flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+    overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    padding-bottom: 32px;
+  }
+  .barra { position: relative; flex: none; }
+  .topo, .barra, .miolo {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .topo, .barra { -webkit-user-select: none; user-select: none; }
+
   .revisao { grid-template-columns: 1fr; }
   .grade-form { grid-template-columns: 1fr; }
-  .topo { flex-wrap: wrap; gap: 10px; padding: 10px 16px; }
+  .topo { flex-wrap: wrap; gap: 10px; padding-bottom: 10px; }
   .topo-acoes { margin-left: auto; }
   /* as 4 etapas numa linha só, rolando de lado se não couber */
   .passos {
@@ -714,21 +775,81 @@ a.bt { text-decoration: none; display: inline-block; }
   .passo-btn:not([aria-current]) .r { display: none; }
   .passo-btn .r { font-size: 12.5px; }
 
-  .miolo { padding: 18px 14px 170px; }
-  .cabeca { margin-bottom: 18px; }
-  .cabeca h1 { font-size: 23px; }
-  .cabeca h1 .script { font-size: 23px; }
-  .cabeca .lead { font-size: 13.5px; }
+  .topo { gap: 8px; padding-bottom: 8px; }
+  .topo, .barra, .miolo {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .miolo { padding-top: 16px; padding-bottom: 28px; }
+
+  /* cabeçalho de cada tela enxuto: o título basta, o texto explicativo
+     longo fica só no computador */
+  .cabeca { margin-bottom: 16px; }
+  .cabeca .olho { font-size: 9px; }
+  .cabeca h1 { font-size: 21px; margin-top: 4px; }
+  .cabeca h1 .script { font-size: 21px; }
+  .cabeca .lead { display: none; }
 
   /* no iPhone, campo com letra menor que 16px dá zoom sozinho ao tocar */
-  .campo input, .campo select, .campo textarea, .faixa input, .orc-busca,
-  .litros input, .taxa-campos input, .taxa-campos select { font-size: 16px; }
+  input, select, textarea { font-size: 16px !important; }
+  .campo input, .campo select, .campo textarea, .orc-busca { padding: 12px 13px; }
 
-  /* barra de baixo: status numa linha, Voltar/Avançar ocupando a largura */
-  .barra { padding: 9px 12px calc(10px + env(safe-area-inset-bottom)); gap: 8px; }
-  .barra .status-bloco { width: 100%; min-width: 0; }
-  .barra .status { font-size: 9.5px; letter-spacing: .06em; line-height: 1.5; }
-  .barra .bt { padding: 12px 14px; }
+  /* alvos de toque com pelo menos ~44px e retorno visual ao tocar */
+  .bt, .bt-precos, .passo-btn, .item-chk, .pilula, .chave, .bt-edit, .bt-opcional, .orc-abrir, .contador button {
+    transition: transform .08s, background .15s, border-color .15s, color .15s;
+  }
+  .bt:active, .bt-precos:active, .passo-btn:active, .item-chk:active, .pilula:active,
+  .bt-edit:active, .bt-opcional:active, .orc-item:active, .contador button:active:not(:disabled) {
+    transform: scale(.97);
+  }
+  .item-chk { padding: 12px; min-height: 48px; }
+  .item-chk .nome { font-size: 14.5px; }
+  .item-chk .marca { width: 18px; height: 18px; }
+  .itens { grid-template-columns: 1fr; }
+  .pilula { padding: 10px 15px; font-size: 13.5px; }
+  .chave { padding: 6px 0 6px 8px; }
+  .chave .pino { width: 48px; height: 27px; border-radius: 14px; }
+  .chave .pino::after { width: 21px; height: 21px; }
+  .bloco.on .chave .pino::after { left: 23px; }
+  .bt-opcional { padding: 7px 12px; }
+  .ficha-rev > .titulinho .bt-edit { padding: 8px 13px; font-size: 12.5px; }
+  .opcao-valor { padding-top: 14px; min-height: 44px; font-size: 14px; }
+  .opcao-valor input { width: 20px; height: 20px; flex: none; }
+  .taxa-campos { flex-direction: column; gap: 12px; }
+  .taxa-campos .campo { flex-direction: column; align-items: stretch; gap: 6px; }
+  .taxa-campos input[type="number"], .taxa-campos select { width: 100%; padding: 11px 12px;
+    background: var(--carvao); border: 1px solid var(--linha); border-radius: var(--raio); }
+  .dados-rev { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+  .campo-equipe .litros { flex-wrap: nowrap; gap: 8px; }
+  .campo-equipe .litros input { width: 0; flex: 1; min-width: 0; padding: 10px 8px; }
+  .precos-topo .acoes { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .precos-topo .acoes .bt { padding: 11px 4px; font-size: 12.5px; white-space: normal; border-color: var(--linha); }
+  .faixa input { padding: 9px 10px; }
+  .faixa .rm { width: 36px; height: 36px; }
+  .add-faixa { padding: 9px 14px; }
+
+  /* chopp: marca numa linha, os dois contadores dividindo a largura */
+  .barris { gap: 14px; }
+  .barris-linha .nome { flex-basis: 100%; }
+  .contadores { width: 100%; flex-wrap: nowrap; }
+  .contadores { gap: 8px; }
+  .contador { flex: 1; min-width: 0; gap: 2px; padding: 3px 3px 3px 8px; }
+  .contador .un { margin-right: auto; letter-spacing: .04em; }
+  .contador .n { min-width: 22px; }
+  .contador button { width: 36px; height: 40px; }
+
+  /* barra de baixo: uma linha de status (cliente · convidados · valor ·
+     pendências + bolinha de salvo) e Voltar/Avançar ocupando a largura */
+  .barra { padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); gap: 8px; }
+  .barra .status-bloco { width: 100%; min-width: 0; flex-direction: row; align-items: center; gap: 10px; }
+  .barra .status {
+    flex: 1; min-width: 0; font-size: 10px; letter-spacing: .04em; line-height: 1.4;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .barra .status .st-data, .barra .status .st-conv, .barra .status .st-blocos { display: none; }
+  .sync { flex: none; font-size: 0; letter-spacing: 0; gap: 0; }   /* só a bolinha */
+  .sync.erro { font-size: 9px; letter-spacing: .1em; gap: 6px; }    /* erro: mostra o texto */
+  .barra .bt { padding: 13px 14px; font-size: 14.5px; }
   #bt-voltar, #bt-avancar { flex: 1; }
   .barra .so-local { flex: 1; padding: 9px 8px; font-size: 12px; }
 

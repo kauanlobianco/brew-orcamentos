@@ -346,7 +346,7 @@ window.BREW_PRECOS_PADRAO = {
     /* serviço pela equipe: valor a cada N convidados, fração conta inteira —
        é a alternativa aos 10%, nunca os dois juntos */
     var eq = precos.equipe || {};
-    if (taxa.ativa && taxa.tipo === 'equipe' && Number(eq.valor) > 0 && convidados > 0) {
+    if (taxa.ativa && taxa.tipo === 'equipe' && Number(eq.valor) > 0 && convidados > 0 && todas.length) {
       var aCada = Math.max(1, Number(eq.aCada) || 20);
       var nBlocos = Math.ceil(convidados / aCada);
       todas.push({

@@ -260,3 +260,9 @@ test('tabela antiga sem as chaves novas ganha os padrões (barris, faixas, equip
 function BREW_itens(bloco) {
   return ctx.window.BREW_INDICE.blocos[bloco].itens.map((i) => i.id);
 }
+
+test('serviço pela equipe não cobra nada sem bloco escolhido', () => {
+  const r = BREW.precificar(estado({}, 80, { taxaServico: { ativa: true, tipo: 'equipe', valor: 10 } }), precos());
+  assert.equal(r.linhas.length, 0);
+  assert.equal(r.pacotes[0].media, 0);
+});
