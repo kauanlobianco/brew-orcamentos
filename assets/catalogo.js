@@ -9,7 +9,16 @@
    regra do bloco:
      'completo'  -> o bloco vem inteiro (o gestor ainda pode tirar um item)
      'escolha'   -> escolher entre as opções (escolha:{min,max})
-     'litros'    -> volume (chopp)
+     'barris'    -> marcas de chopp, cada uma com barris de 30 L e 50 L
+
+   preco do bloco:
+     modo     'pessoa' (por convidado) · 'evento' (valor fechado do evento)
+              · 'barril' (por barril de chopp)
+     porItem  aceita preço por opção/variação
+     combinar como juntar o preço das opções marcadas:
+              'soma-faixa' soma os itens e enquadra na faixa comercial (petiscos)
+              'media'      média das opções (Brew Classics)
+              'maior'      a mais cara define (padrão)
    ========================================================================== */
 window.BREW_CATALOGO = {
 
@@ -32,7 +41,7 @@ window.BREW_CATALOGO = {
           nome: 'Petiscos & entradas',
           olho: 'Bloco 01 · Para começar',
           descricao: 'Servidos na recepção, acompanham qualquer prato principal.',
-          preco: { modo: 'pessoa', porItem: true },
+          preco: { modo: 'pessoa', porItem: true, combinar: 'soma-faixa' },
           foto: 'cat_pasteis.jpg',
           /* o cliente monta a própria seleção: no mínimo 6 dos 12 (set/2026) */
           regra: 'escolha',
@@ -104,7 +113,8 @@ window.BREW_CATALOGO = {
           nome: 'Brew Classics',
           olho: 'Bloco 03 · Prato principal',
           descricao: 'Pratos empratados, definidos com antecedência. Escolha duas opções.',
-          preco: { modo: 'pessoa', porItem: true },
+          /* cada convidado come um dos dois pratos: cobra a média da dupla */
+          preco: { modo: 'pessoa', porItem: true, combinar: 'media' },
           foto: 'bc_mignon.jpg',
           regra: 'escolha',
           escolha: { min: 2, max: 2 },
@@ -200,23 +210,34 @@ window.BREW_CATALOGO = {
           nome: 'Chopp na torneira',
           olho: 'Bebidas · Chopp',
           descricao: 'Gelado, direto do barril, durante todo o evento.',
-          preco: { modo: 'litro', porItem: false },
+          /* vendido por barril; o preço do bloco (por litro) só entra quando
+             a marca/barril não tem preço, e nos orçamentos antigos em litros */
+          preco: { modo: 'barril', porItem: true },
           foto: 'cat_chopp.jpg',
-          regra: 'litros',
-          litros: { sugestoes: [30, 50, 100, 150], padrao: 50 },
+          regra: 'barris',
+          escolha: { min: 1, max: 3 },
+          barris: [
+            { id: '30', litros: 30, rotulo: 'Barril 30 L' },
+            { id: '50', litros: 50, rotulo: 'Barril 50 L' }
+          ],
           proposta: {
             formato: 'meia',
             olho: 'No bar',
             h1: '{litros} litros', script: 'de chopp',
             selo: '{litros} litros · incluso',
-            titulo: 'Chopp gelado na torneira',
+            titulo: 'Chopp {marcas} na torneira',
             texto: 'Chopp gelado, puxado direto da torneira, disponível para os convidados durante todo o evento.',
             checklist: [
-              '{litros} litros à disposição durante o evento',
+              '{barris} · {litros} litros à disposição durante o evento',
               'Servido sempre gelado, direto da torneira',
               'Equipe de bar cuidando da torneira do início ao fim'
             ]
-          }
+          },
+          itens: [
+            { id: 'chopp-brahma',   nome: 'Brahma' },
+            { id: 'chopp-amstel',   nome: 'Amstel' },
+            { id: 'chopp-heineken', nome: 'Heineken' }
+          ]
         },
         {
           id: 'drinks',
@@ -283,7 +304,8 @@ window.BREW_CATALOGO = {
           nome: 'Música ao vivo',
           olho: 'Extras',
           descricao: 'Repertório e cronograma acertados de acordo com o clima da noite.',
-          preco: { modo: 'pessoa', porItem: true },
+          /* cachê fechado do evento, não por pessoa */
+          preco: { modo: 'evento', porItem: true },
           foto: 'cat_musica1.jpg',
           regra: 'escolha',
           escolha: { min: 1, max: 1 },

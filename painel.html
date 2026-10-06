@@ -138,15 +138,27 @@
       <div class="cabeca">
         <p class="olho">Configuração · vale para todos os orçamentos</p>
         <h1>Tabela <span class="script">de preços</span></h1>
-        <p class="lead">Preço <b>por pessoa</b> em tudo, menos o chopp, que é <b>por litro</b>.
-          Cada preço pode ter faixas por volume — “até 20 pessoas R$ 40, até 40 R$ 35, acima disso R$ 30”.
-          Dentro de um bloco, o preço da opção sobrepõe o do bloco, e o da variação sobrepõe o da opção.</p>
+        <p class="lead">Preço <b>por pessoa</b> em quase tudo; o chopp é <b>por barril</b> e a música é
+          <b>valor fechado do evento</b>. Cada preço pode ter faixas por volume — “até 20 pessoas R$ 40,
+          até 40 R$ 35, acima disso R$ 30”; R$ 0 numa faixa quer dizer <b>sob consulta</b>.
+          Dentro de um bloco, o preço da opção sobrepõe o do bloco, e o da variação sobrepõe o da opção.
+          Petiscos somam os itens e caem na faixa comercial; Brew Classics cobra a média dos dois pratos.</p>
       </div>
 
       <div class="precos-topo">
         <div class="campo">
           <label for="f-arredondamento">Arredondar a média por pessoa</label>
           <select id="f-arredondamento"></select>
+        </div>
+        <div class="campo campo-equipe">
+          <label for="f-equipe-valor">Equipe de serviço</label>
+          <div class="litros">
+            <span class="un">R$</span>
+            <input id="f-equipe-valor" type="number" min="0" step="0.01">
+            <span class="un">a cada</span>
+            <input id="f-equipe-cada" type="number" min="1" step="1">
+            <span class="un">convidados</span>
+          </div>
         </div>
         <div class="acoes">
           <input type="file" id="arquivo-precos" accept="application/json,.json" hidden>
