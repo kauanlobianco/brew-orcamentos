@@ -233,9 +233,29 @@ button.link {
 
 /* barris de chopp: uma linha por marca */
 .barris { display: grid; gap: 8px; }
-.barris-linha { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.barris-linha { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
 .barris-linha .nome { min-width: 84px; font-size: 14px; color: var(--creme); }
-.barris-linha .litros input { width: 64px; }
+.contadores { display: flex; gap: 10px; flex-wrap: wrap; }
+.contador {
+  display: flex; align-items: center; gap: 4px;
+  border: 1px solid var(--linha); border-radius: var(--raio); background: var(--carvao);
+  padding: 4px 4px 4px 12px; transition: .15s;
+}
+.contador.on { border-color: var(--ouro); background: rgba(204, 150, 20, .1); }
+.contador .un { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; color: var(--suave); margin-right: 6px; white-space: nowrap; }
+.contador .n {
+  min-width: 26px; text-align: center;
+  font-family: var(--display); font-size: 17px; color: var(--suave);
+}
+.contador.on .n { color: var(--ouro); }
+.contador button {
+  width: 38px; height: 38px; border-radius: 6px; border: 1px solid var(--linha);
+  font-size: 20px; line-height: 1; color: var(--creme); background: transparent; transition: .15s;
+  touch-action: manipulation;      /* toque rápido sem dar zoom no iPhone */
+}
+.contador button:hover:not(:disabled) { border-color: var(--ouro); color: var(--ouro); }
+.contador button:disabled { opacity: .3; cursor: default; }
+.contador .mais { border-color: rgba(204, 150, 20, .5); }
 .barris-total { margin-top: 10px; font-size: 12px; color: rgba(242, 233, 216, .5); }
 
 /* ---------------------------------------------------------------- revisão */
@@ -723,6 +743,16 @@ a.bt { text-decoration: none; display: inline-block; }
   /* no iPhone, campo com letra menor que 16px dá zoom sozinho ao tocar */
   .campo input, .campo select, .campo textarea, .faixa input, .orc-busca,
   .litros input, .taxa-campos input, .taxa-campos select { font-size: 16px; }
+
+  /* chopp: marca numa linha, os dois contadores dividindo a largura */
+  .barris { gap: 14px; }
+  .barris-linha .nome { flex-basis: 100%; }
+  .contadores { width: 100%; flex-wrap: nowrap; }
+  .contadores { gap: 8px; }
+  .contador { flex: 1; min-width: 0; gap: 2px; padding: 3px 3px 3px 8px; }
+  .contador .un { margin-right: auto; letter-spacing: .04em; }
+  .contador .n { min-width: 22px; }
+  .contador button { width: 36px; height: 40px; }
 
   /* barra de baixo: status numa linha, Voltar/Avançar ocupando a largura */
   .barra { padding: 9px 12px calc(10px + env(safe-area-inset-bottom)); gap: 8px; }

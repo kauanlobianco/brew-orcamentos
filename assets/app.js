@@ -351,13 +351,20 @@
       return '<p class="titulinho">Marca e quantidade de barris</p>' +
         '<div class="barris">' + (bloco.itens || []).map(function (it) {
           var q = (s.barris || {})[it.id] || {};
+          var dados = ' data-bloco="' + bloco.id + '" data-item="' + it.id + '"';
           return '<div class="barris-linha"><span class="nome">' + esc(it.nome) + '</span>' +
-            bloco.barris.map(function (br) {
-              return '<label class="litros"><input type="number" min="0" step="1" inputmode="numeric" value="' +
-                (Number(q[br.id]) || '') + '" placeholder="0" data-acao="barris" data-bloco="' + bloco.id +
-                '" data-item="' + it.id + '" data-barril="' + br.id + '">' +
-                '<span class="un">× ' + br.litros + ' L</span></label>';
-            }).join('') + '</div>';
+            '<div class="contadores">' + bloco.barris.map(function (br) {
+              var n = Number(q[br.id]) || 0;
+              var d = dados + ' data-barril="' + br.id + '"';
+              return '<div class="contador' + (n ? ' on' : '') + '">' +
+                '<span class="un">' + br.litros + ' L</span>' +
+                '<button type="button" class="menos" data-acao="barril" data-passo="-1"' + d +
+                (n ? '' : ' disabled') + ' aria-label="Tirar um barril de ' + br.litros + ' L de ' + esc(it.nome) + '">−</button>' +
+                '<span class="n" aria-live="polite">' + n + '</span>' +
+                '<button type="button" class="mais" data-acao="barril" data-passo="1"' + d +
+                ' aria-label="Pôr um barril de ' + br.litros + ' L de ' + esc(it.nome) + '">+</button>' +
+                '</div>';
+            }).join('') + '</div></div>';
         }).join('') + '</div>' +
         '<p class="dica barris-total">' + totalChoppTxt(lt, conv) + '</p>';
     }
@@ -448,6 +455,7 @@
       else if (acao === 'opcional') estado.blocos[id].opcional = !estado.blocos[id].opcional;
       else if (acao === 'item') marcarItem(id, bt.dataset.item);
       else if (acao === 'variacao') estado.blocos[id].variacoes[bt.dataset.item] = bt.dataset.valor;
+      else if (acao === 'barril') somarBarril(id, bt.dataset.item, bt.dataset.barril, Number(bt.dataset.passo));
       else return;
 
       redesenharBloco(id);
@@ -455,27 +463,16 @@
       atualizarStatus();
     });
 
-    $('#lista-blocos').addEventListener('input', function (ev) {
-      var campo = ev.target.closest('[data-acao="barris"]');
-      if (!campo) return;
-      var bloco = IDX.blocos[campo.dataset.bloco], s = estado.blocos[bloco.id];
-      var item = campo.dataset.item;
-      var q = s.barris[item] = s.barris[item] || {};
-      var n = Math.max(0, Math.floor(Number(campo.value) || 0));
-      if (n) q[campo.dataset.barril] = n; else delete q[campo.dataset.barril];
-      if (!Object.keys(q).length) delete s.barris[item];
-      s.litros = null;      /* barris substituem os litros dos orçamentos antigos */
-      /* sem redesenhar: o foco do campo tem que continuar onde está */
-      var art = campo.closest('.bloco');
-      var r = rotuloRegra(bloco, s);
-      var regra = $('.regra', art);
-      regra.textContent = r.txt;
-      regra.classList.toggle('alerta', r.alerta);
-      $('.barris-total', art).textContent =
-        totalChoppTxt(litrosDoChopp(bloco, s), Number(estado.evento.convidados) || 0);
-      salvar();
-      atualizarStatus();
-    });
+  }
+
+  /* botões − / + do chopp: um barril por clique, nunca abaixo de zero */
+  function somarBarril(blocoId, item, barril, passo) {
+    var s = estado.blocos[blocoId];
+    var q = s.barris[item] = s.barris[item] || {};
+    var n = Math.max(0, (Number(q[barril]) || 0) + passo);
+    if (n) q[barril] = n; else delete q[barril];
+    if (!Object.keys(q).length) delete s.barris[item];
+    s.litros = null;      /* barris substituem os litros dos orçamentos antigos */
   }
 
   /* --------------------------------------------------- TABELA DE PREÇOS */
