@@ -37,16 +37,20 @@ export async function lerCorpo(request, limite = 900 * 1024) {
 
 /* -------------------------------------------------------------------- banco
    Postgres no Neon, falado por HTTP com o driver oficial (@neondatabase/serverless).
-   DATABASE_URL é criada sozinha quando o Neon é conectado ao projeto pelo
-   menu Storage da Vercel. As tabelas nascem sozinhas no primeiro acesso —
+   NEON_DATABASE_URL / NEON_URL são criadas sozinhas quando o Neon é conectado
+   ao projeto pelo menu Storage da Vercel (com o prefixo NEON). As tabelas nascem sozinhas no primeiro acesso —
    não precisa rodar SQL nenhum.
 
    O plano gratuito do Neon não pausa como o do Supabase: o banco cochila
    depois de alguns minutos parado e acorda sozinho na próxima consulta
    (leva ~1 segundo a mais). Nunca precisa de "restore". */
 
+/* Na Vercel o Neon é conectado com o prefixo "NEON" (NEON_URL, NEON_DATABASE_URL…)
+   porque o Supabase antigo já ocupava POSTGRES_URL. Não cai no POSTGRES_URL de
+   propósito: ele pode ser o do Supabase. */
 function dbUrl() {
-  return process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+  const e = process.env;
+  return e.NEON_DATABASE_URL || e.NEON_URL || e.DATABASE_URL || '';
 }
 
 export function bancoConfigurado() {
