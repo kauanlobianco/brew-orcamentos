@@ -44,6 +44,7 @@ Como funciona por dentro:
 api/login.js        POST  senha -> token de sessão (30 dias; 10 erros = trava 15 min)
 api/precos.js       GET/PUT a tabela de preços
 api/orcamentos.js   GET lista · GET ?id · POST salvar · DELETE ?id
+api/manter-ativo.js GET 1x por dia pelo cron — mantém o Supabase acordado
 api/_lib.js         banco (Supabase via API REST) e assinatura do token
 supabase/tabelas.sql  as duas tabelas (brew_kv, brew_orcamentos) — rodar 1x no SQL Editor
 ```
@@ -54,6 +55,14 @@ Variáveis de ambiente na Vercel:
 |---|---|
 | `ADMIN_PASSWORD` | a senha de acesso — trocar ela derruba todas as sessões |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | criadas sozinhas pela integração Supabase da Vercel |
+
+**Banco pausado ("fetch failed" / "o banco não respondeu")** — o plano
+gratuito do Supabase pausa o projeto depois de **7 dias sem uso**. Para não
+acontecer, a Vercel chama `api/manter-ativo.js` uma vez por dia (o `crons` do
+`vercel.json`), que faz uma leitura mínima no banco. Se mesmo assim pausar:
+Supabase → o projeto → **Restore project**, esperar alguns minutos e entrar de
+novo. Opcional: criar a variável `CRON_SECRET` na Vercel (qualquer texto
+longo) para que só o cron consiga chamar essa rota.
 
 As tabelas têm RLS ligado e nenhuma política: a chave pública (anon) não
 enxerga nada; só as funções do painel, com a chave de serviço, leem e gravam.
