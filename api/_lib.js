@@ -51,6 +51,9 @@ function sbChave() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
 }
 
+const BANCO_FORA = 'O banco de dados (Supabase) não respondeu — provavelmente foi pausado por ' +
+  'falta de uso. Abra o painel do Supabase, clique em "Restore project", espere uns minutos e entre de novo.';
+
 export function bancoConfigurado() {
   return Boolean(sbUrl() && sbChave());
 }
@@ -61,10 +64,21 @@ export async function sb(metodo, caminho, corpo, prefer) {
   /* chave antiga (JWT) vai também no Authorization; a nova (sb_secret_) não */
   if (chave.startsWith('eyJ')) headers.authorization = 'Bearer ' + chave;
   if (prefer) headers.prefer = prefer;
-  const r = await fetch(sbUrl() + '/rest/v1/' + caminho, {
-    method: metodo, headers,
-    body: corpo === undefined ? undefined : JSON.stringify(corpo)
-  });
+  let r;
+  try {
+    r = await fetch(sbUrl() + '/rest/v1/' + caminho, {
+      method: metodo, headers,
+      body: corpo === undefined ? undefined : JSON.stringify(corpo)
+    });
+  } catch (e) {
+    /* nem chegou a conectar ("fetch failed"): no plano gratuito, o Supabase
+       pausa o projeto depois de 7 dias sem uso — /api/manter-ativo evita isso */
+    throw Object.assign(new Error(BANCO_FORA), { status: 503 });
+  }
+  /* projeto pausado/em restauração também pode responder 5xx sem JSON */
+  if (r.status === 502 || r.status === 503 || r.status === 504 || r.status === 540) {
+    throw Object.assign(new Error(BANCO_FORA), { status: 503 });
+  }
   const texto = await r.text();
   let dados = null;
   try { dados = texto ? JSON.parse(texto) : null; } catch (e) { dados = null; }
