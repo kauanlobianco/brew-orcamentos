@@ -52,7 +52,7 @@ Variáveis de ambiente na Vercel:
 | Variável | O que é |
 |---|---|
 | `ADMIN_PASSWORD` | a senha de acesso — trocar ela derruba todas as sessões |
-| `DATABASE_URL` | criada sozinha ao conectar o Neon em *Storage* |
+| `NEON_DATABASE_URL` / `NEON_URL` | criadas sozinhas ao conectar o Neon em *Storage* com o prefixo `NEON` (também aceita `DATABASE_URL`) |
 
 **Banco: Neon (Postgres).** O plano gratuito não pausa como o do Supabase:
 cochila depois de uns minutos parado e acorda sozinho no próximo acesso
@@ -63,7 +63,7 @@ acessado pelas funções do painel, no servidor; o endereço com senha
 
 **Conectar (dá para fazer pelo celular):** Vercel → o projeto → *Storage* →
 *Create Database* → **Neon** → plano *Free* → *Create* → conectar ao projeto
-(marcar os ambientes) → *Deployments* → *Redeploy* no último. Depois, em
+(*Custom Prefix* = `NEON`; desmarcar "Create database branch for deployment") → *Deployments* → *Redeploy* no último. Depois, em
 *Preços → Abrir tabela…*, carregar a tabela de preços salva em `.json`.
 
 **No celular, como aplicativo** — no Safari, *Compartilhar → Adicionar à Tela
