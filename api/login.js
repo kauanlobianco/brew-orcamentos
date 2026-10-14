@@ -11,7 +11,7 @@ const JANELA_MS = 15 * 60 * 1000;
 export async function POST(request) {
   try {
     if (!senhaConfigurada()) return erro('ADMIN_PASSWORD não configurada na Vercel.', 500);
-    if (!bancoConfigurado()) return erro('Banco (Supabase) não conectado ao projeto.', 500);
+    if (!bancoConfigurado()) return erro('Banco (Neon) não conectado ao projeto — Vercel > Storage.', 500);
 
     const ip = (request.headers.get('x-forwarded-for') || 'local').split(',')[0].trim();
     const chave = 'login:falhas:' + ip;

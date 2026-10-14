@@ -1,18 +1,14 @@
 /* =============================================================================
    Brew — utilidades das funções da Vercel (não vira endpoint: começa com "_")
 
-   Banco: Supabase (Postgres), falado pela API REST — sem pacote npm.
-   SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são criadas sozinhas quando o
-   Supabase é conectado ao projeto pela integração da Vercel. As tabelas vêm
-   de supabase/tabelas.sql (rodar uma vez no SQL Editor).
+   Banco: Postgres no Neon (ver "banco" abaixo).
 
    Login: uma senha única de administrador, na variável ADMIN_PASSWORD.
    O token de sessão é assinado com HMAC a partir dela — trocar a senha
    derruba todas as sessões abertas.
 
-   Só usa APIs Web (fetch, crypto.subtle, Request/Response), que existem no
-   Node 22 da Vercel e também no navegador — dá pra testar sem Node local.
    ========================================================================== */
+import { neon } from '@neondatabase/serverless';
 
 const DIAS_SESSAO = 30;
 
@@ -39,71 +35,91 @@ export async function lerCorpo(request, limite = 900 * 1024) {
   catch (e) { throw Object.assign(new Error('JSON inválido.'), { status: 400 }); }
 }
 
-/* ----------------------------------------------------------------- supabase
-   Fala com o Postgres pela API REST do Supabase (PostgREST), com a chave de
-   serviço — que só existe aqui no servidor. As tabelas têm RLS ligado e
-   nenhuma política: a chave pública (anon) não lê nem grava nada. */
+/* -------------------------------------------------------------------- banco
+   Postgres no Neon, falado por HTTP com o driver oficial (@neondatabase/serverless).
+   DATABASE_URL é criada sozinha quando o Neon é conectado ao projeto pelo
+   menu Storage da Vercel. As tabelas nascem sozinhas no primeiro acesso —
+   não precisa rodar SQL nenhum.
 
-function sbUrl() {
-  return (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-}
-function sbChave() {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
-}
+   O plano gratuito do Neon não pausa como o do Supabase: o banco cochila
+   depois de alguns minutos parado e acorda sozinho na próxima consulta
+   (leva ~1 segundo a mais). Nunca precisa de "restore". */
 
-const BANCO_FORA = 'O banco de dados (Supabase) não respondeu — provavelmente foi pausado por ' +
-  'falta de uso. Abra o painel do Supabase, clique em "Restore project", espere uns minutos e entre de novo.';
+function dbUrl() {
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+}
 
 export function bancoConfigurado() {
-  return Boolean(sbUrl() && sbChave());
+  return Boolean(dbUrl());
 }
 
-export async function sb(metodo, caminho, corpo, prefer) {
-  const chave = sbChave();
-  const headers = { apikey: chave, 'content-type': 'application/json' };
-  /* chave antiga (JWT) vai também no Authorization; a nova (sb_secret_) não */
-  if (chave.startsWith('eyJ')) headers.authorization = 'Bearer ' + chave;
-  if (prefer) headers.prefer = prefer;
-  let r;
+const BANCO_FORA = 'O banco de dados não respondeu. Confira a internet e tente de novo em instantes.';
+
+const TABELAS = [
+  `create table if not exists brew_kv (
+     chave      text primary key,
+     valor      jsonb not null,
+     atualizado timestamptz not null default now()
+   )`,
+  `create table if not exists brew_orcamentos (
+     id         uuid primary key,
+     criado     timestamptz not null default now(),
+     atualizado timestamptz not null default now(),
+     resumo     jsonb not null default '{}'::jsonb,
+     estado     jsonb not null,
+     precos     jsonb
+   )`,
+  `create index if not exists brew_orcamentos_atualizado on brew_orcamentos (atualizado desc)`
+];
+
+/* (texto, params) -> linhas. Trocável nos testes por um Postgres local. */
+let consultar = null;
+export function usarConsulta(fn) { consultar = fn; prontas = null; }
+
+async function bruto(texto, params) {
+  if (!consultar) {
+    const sql = neon(dbUrl());
+    consultar = (t, p) => sql.query(t, p);
+  }
   try {
-    r = await fetch(sbUrl() + '/rest/v1/' + caminho, {
-      method: metodo, headers,
-      body: corpo === undefined ? undefined : JSON.stringify(corpo)
-    });
+    return await consultar(texto, params || []);
   } catch (e) {
-    /* nem chegou a conectar ("fetch failed"): no plano gratuito, o Supabase
-       pausa o projeto depois de 7 dias sem uso — /api/manter-ativo evita isso */
-    throw Object.assign(new Error(BANCO_FORA), { status: 503 });
+    /* erro de SQL tem código (sqlstate); sem código = nem conectou */
+    if (!e.code) throw Object.assign(new Error(BANCO_FORA), { status: 503 });
+    throw new Error('Banco: ' + e.message);
   }
-  /* projeto pausado/em restauração também pode responder 5xx sem JSON */
-  if (r.status === 502 || r.status === 503 || r.status === 504 || r.status === 540) {
-    throw Object.assign(new Error(BANCO_FORA), { status: 503 });
+}
+
+let prontas = null;
+function prepararTabelas() {
+  if (!prontas) {
+    prontas = TABELAS.reduce((p, t) => p.then(() => bruto(t)), Promise.resolve())
+      .catch((e) => { prontas = null; throw e; });
   }
-  const texto = await r.text();
-  let dados = null;
-  try { dados = texto ? JSON.parse(texto) : null; } catch (e) { dados = null; }
-  if (!r.ok) {
-    const msg = (dados && (dados.message || dados.error)) || ('HTTP ' + r.status);
-    if ((dados && (dados.code === '42P01' || dados.code === 'PGRST205')) || /does not exist|could not find the table/i.test(msg)) {
-      throw Object.assign(new Error('As tabelas do banco ainda não foram criadas — rode supabase/tabelas.sql no SQL Editor do Supabase.'), { status: 500 });
-    }
-    throw new Error('Banco: ' + msg);
-  }
-  return dados;
+  return prontas;
+}
+
+/* toda consulta do painel passa por aqui: garante as tabelas uma vez por
+   instância da função e depois só consulta */
+export async function db(texto, params) {
+  await prepararTabelas();
+  return bruto(texto, params);
 }
 
 /* chave/valor simples (tabela brew_kv): tabela de preços, travas de login */
 export async function kvLer(chave) {
-  const linhas = await sb('GET', 'brew_kv?select=valor&chave=eq.' + encodeURIComponent(chave));
-  return linhas && linhas[0] ? linhas[0].valor : null;
+  const linhas = await db('select valor from brew_kv where chave = $1', [chave]);
+  return linhas[0] ? linhas[0].valor : null;
 }
 export async function kvGravar(chave, valor) {
-  await sb('POST', 'brew_kv?on_conflict=chave',
-    { chave, valor, atualizado: new Date().toISOString() },
-    'resolution=merge-duplicates,return=minimal');
+  await db(
+    `insert into brew_kv (chave, valor, atualizado) values ($1, $2::jsonb, now())
+     on conflict (chave) do update set valor = excluded.valor, atualizado = excluded.atualizado`,
+    [chave, JSON.stringify(valor)]
+  );
 }
 export async function kvApagar(chave) {
-  await sb('DELETE', 'brew_kv?chave=eq.' + encodeURIComponent(chave), undefined, 'return=minimal');
+  await db('delete from brew_kv where chave = $1', [chave]);
 }
 
 /* ------------------------------------------------------------------ sessão */
@@ -160,7 +176,7 @@ export function protegido(handler) {
   return async (request) => {
     try {
       if (!senhaConfigurada()) return erro('ADMIN_PASSWORD não configurada na Vercel.', 500);
-      if (!bancoConfigurado()) return erro('Banco (Supabase) não conectado ao projeto.', 500);
+      if (!bancoConfigurado()) return erro('Banco (Neon) não conectado ao projeto — Vercel > Storage.', 500);
       if (!(await autorizado(request))) return erro('Sessão expirada. Entre de novo.', 401);
       return await handler(request);
     } catch (e) {

@@ -44,9 +44,7 @@ Como funciona por dentro:
 api/login.js        POST  senha -> token de sessão (30 dias; 10 erros = trava 15 min)
 api/precos.js       GET/PUT a tabela de preços
 api/orcamentos.js   GET lista · GET ?id · POST salvar · DELETE ?id
-api/manter-ativo.js GET 1x por dia pelo cron — mantém o Supabase acordado
-api/_lib.js         banco (Supabase via API REST) e assinatura do token
-supabase/tabelas.sql  as duas tabelas (brew_kv, brew_orcamentos) — rodar 1x no SQL Editor
+api/_lib.js         banco (Postgres no Neon) e assinatura do token
 ```
 
 Variáveis de ambiente na Vercel:
@@ -54,19 +52,19 @@ Variáveis de ambiente na Vercel:
 | Variável | O que é |
 |---|---|
 | `ADMIN_PASSWORD` | a senha de acesso — trocar ela derruba todas as sessões |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | criadas sozinhas pela integração Supabase da Vercel |
+| `DATABASE_URL` | criada sozinha ao conectar o Neon em *Storage* |
 
-**Banco pausado ("fetch failed" / "o banco não respondeu")** — o plano
-gratuito do Supabase pausa o projeto depois de **7 dias sem uso**. Para não
-acontecer, a Vercel chama `api/manter-ativo.js` uma vez por dia (o `crons` do
-`vercel.json`), que faz uma leitura mínima no banco. Se mesmo assim pausar:
-Supabase → o projeto → **Restore project**, esperar alguns minutos e entrar de
-novo. Opcional: criar a variável `CRON_SECRET` na Vercel (qualquer texto
-longo) para que só o cron consiga chamar essa rota.
+**Banco: Neon (Postgres).** O plano gratuito não pausa como o do Supabase:
+cochila depois de uns minutos parado e acorda sozinho no próximo acesso
+(~1 segundo a mais). As duas tabelas (`brew_kv` e `brew_orcamentos`) são
+criadas sozinhas no primeiro acesso — não precisa rodar SQL. O banco só é
+acessado pelas funções do painel, no servidor; o endereço com senha
+(`DATABASE_URL`) nunca vai para o navegador nem para o repositório.
 
-As tabelas têm RLS ligado e nenhuma política: a chave pública (anon) não
-enxerga nada; só as funções do painel, com a chave de serviço, leem e gravam.
-A chave de serviço nunca vai para o navegador nem para o repositório.
+**Conectar (dá para fazer pelo celular):** Vercel → o projeto → *Storage* →
+*Create Database* → **Neon** → plano *Free* → *Create* → conectar ao projeto
+(marcar os ambientes) → *Deployments* → *Redeploy* no último. Depois, em
+*Preços → Abrir tabela…*, carregar a tabela de preços salva em `.json`.
 
 **No celular, como aplicativo** — no Safari, *Compartilhar → Adicionar à Tela
 de Início* (no Chrome/Android, *Instalar app*). Abre em tela cheia, com ícone
@@ -79,9 +77,7 @@ Aberto como arquivo (duplo clique no `painel.html`), o painel continua
 funcionando só no navegador daquele computador, sem login — como antes.
 
 **Testar sem publicar:** `_teste-nuvem.html` (fica fora do Git) roda o painel com
-o código real das funções, falando com o Supabase de verdade. As chaves são
-coladas no console na hora (instruções no próprio arquivo), nunca gravadas.
-Precisa ser servido por http.
+o código real das funções. Precisa ser servido por http.
 
 ## O cardápio do cliente
 
