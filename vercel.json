@@ -1,8 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    { "path": "/api/manter-ativo", "schedule": "17 11 * * *" }
-  ],
   "rewrites": [
     { "source": "/", "destination": "/painel.html" }
   ],

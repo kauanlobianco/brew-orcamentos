@@ -5,5 +5,8 @@
   "type": "module",
   "engines": {
     "node": "22.x"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0"
   }
 }
